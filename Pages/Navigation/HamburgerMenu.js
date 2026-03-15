@@ -149,8 +149,11 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
       await AsyncStorage.removeItem('userToken');
       setUser(null);
       onClose();
-      // Navigate to login screen
-      navigation.navigate('Login');
+      // Reset navigation stack to Login screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
     } catch (error) {
       console.error('Error during logout:', error);
     }

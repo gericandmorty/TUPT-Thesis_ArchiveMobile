@@ -46,7 +46,11 @@ const FilterModal = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={modalStyles.modalContent}>
+          <ScrollView 
+            style={modalStyles.modalContent}
+            contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 40 }}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Year Filter */}
             <Text style={modalStyles.filterLabel}>Academic Year</Text>
             <View style={modalStyles.pickerContainer}>
@@ -54,6 +58,7 @@ const FilterModal = ({
                 selectedValue={selectedYear}
                 onValueChange={(val) => onYearChange(val)}
                 style={modalStyles.picker}
+                itemStyle={{ color: '#1f2937' }}
               >
                 {availableYears.map(y => (
                     <Picker.Item key={y} label={y === 'all' ? 'All Years' : y} value={y} />
@@ -68,6 +73,7 @@ const FilterModal = ({
                 selectedValue={selectedCategory}
                 onValueChange={(val) => onCategoryChange(val)}
                 style={modalStyles.picker}
+                itemStyle={{ color: '#1f2937' }}
               >
                 {availableCategories.map(c => (
                     <Picker.Item key={c} label={c === 'all' ? 'All Departments' : c} value={c} />
@@ -82,6 +88,7 @@ const FilterModal = ({
                 selectedValue={selectedType}
                 onValueChange={(val) => onTypeChange(val)}
                 style={modalStyles.picker}
+                itemStyle={{ color: '#1f2937' }}
               >
                 {types.map(t => (
                     <Picker.Item key={t} label={t === 'all' ? 'All Types' : t} value={t} />
@@ -449,14 +456,14 @@ const styles = StyleSheet.create({
   },
   pageFilterBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 4 },
   queryTag: {
-      backgroundColor: 'rgba(255,255,255,1)',
+      backgroundColor: 'rgba(255,255,255,0.12)',
       paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 12,
-      marginBottom: 10,
-      alignSelf: 'flex-start',
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
   },
-  queryTagText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  queryTagText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filterBadge: {
       backgroundColor: 'rgba(127, 0, 0, 0.4)',
@@ -517,15 +524,43 @@ const styles = StyleSheet.create({
 
 const modalStyles = StyleSheet.create({
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    modalContainer: { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingBottom: 40, maxHeight: '80%' },
+    modalContainer: { 
+        backgroundColor: '#fff', 
+        borderTopLeftRadius: 30, 
+        borderTopRightRadius: 30, 
+        minHeight: Platform.OS === 'ios' ? 500 : 400,
+        maxHeight: '92%' 
+    },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-    modalTitle: { fontSize: 20, fontWeight: '900', color: '#1f2937' },
+    modalTitle: { fontSize: 20, fontWeight: '999', color: '#1f2937' },
     closeBtn: { padding: 5 },
-    modalContent: { padding: 25 },
-    filterLabel: { fontSize: 14, fontWeight: 'bold', color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 },
-    pickerContainer: { backgroundColor: '#f9fafb', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 25, overflow: 'hidden' },
-    picker: { height: 50, width: '100%' },
-    modalFooter: { flexDirection: 'row', paddingHorizontal: 25, gap: 12 },
+    modalContent: { paddingHorizontal: 25 },
+    filterLabel: { fontSize: 13, fontWeight: '800', color: '#6b7280', marginBottom: 12, marginTop: 10, textTransform: 'uppercase', letterSpacing: 1.5 },
+    pickerContainer: { 
+        backgroundColor: '#f9fafb', 
+        borderRadius: 12, 
+        borderWidth: 1, 
+        borderColor: '#e5e7eb', 
+        marginBottom: 25, 
+        overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
+        minHeight: Platform.OS === 'ios' ? 200 : 58,
+        justifyContent: 'center',
+    },
+    picker: { 
+        height: Platform.OS === 'ios' ? 200 : 58, 
+        width: '100%',
+        color: '#111827',
+    },
+    modalFooter: { 
+        flexDirection: 'row', 
+        paddingHorizontal: 25, 
+        gap: 12, 
+        paddingTop: 15, 
+        paddingBottom: Platform.OS === 'ios' ? 45 : 25,
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
+    },
     clearBtn: { flex: 1, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
     clearBtnText: { color: '#6b7280', fontWeight: 'bold' },
     applyBtn: { flex: 2, backgroundColor: '#7f0000', paddingVertical: 15, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },

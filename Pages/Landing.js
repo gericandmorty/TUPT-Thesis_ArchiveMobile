@@ -11,8 +11,9 @@ import {
   SafeAreaView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { Animated } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -61,6 +62,35 @@ const features = [
 
 const LandingScreen = () => {
   const navigation = useNavigation();
+  const isFocused = useIsFocused();
+
+  // Animations
+  const titleAnim = React.useRef(new Animated.Value(0)).current;
+  const subtitleAnim = React.useRef(new Animated.Value(0)).current;
+  const primaryBtnAnim = React.useRef(new Animated.Value(0)).current;
+  const secondaryActionsAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (isFocused) {
+      // Reset values
+      titleAnim.setValue(0);
+      subtitleAnim.setValue(0);
+      primaryBtnAnim.setValue(0);
+      secondaryActionsAnim.setValue(0);
+
+      Animated.stagger(150, [
+        Animated.spring(titleAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+        Animated.spring(subtitleAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+        Animated.spring(primaryBtnAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+        Animated.spring(secondaryActionsAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [isFocused]);
+
+  const translateY = (anim) => anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0],
+  });
 
   return (
     <ScrollView 
@@ -78,47 +108,56 @@ const LandingScreen = () => {
           resizeMode="cover"
         >
           <LinearGradient
-            colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'rgba(139,0,0,0.9)']}
+            colors={['rgba(15, 23, 42, 0.9)', 'rgba(67, 0, 0, 0.65)', 'rgba(23, 0, 0, 1)']}
             style={styles.heroGradient}
           >
             <SafeAreaView style={styles.heroContent}>
               <View style={styles.heroTextContainer}>
-                <Text style={styles.heroTitle}>
+                <Animated.Text style={[
+                    styles.heroTitle,
+                    { opacity: titleAnim, transform: [{ translateY: translateY(titleAnim) }] }
+                ]}>
                   THE DIGITAL ARCHIVE OF TUP EXCELLENCE
-                </Text>
-                <Text style={styles.heroSubtitle}>
+                </Animated.Text>
+                
+                <Animated.Text style={[
+                    styles.heroSubtitle,
+                    { opacity: subtitleAnim, transform: [{ translateY: translateY(subtitleAnim) }] }
+                ]}>
                   A centralized repository for future-ready engineers. Store, search, and verify your research with institutional precision.
-                </Text>
+                </Animated.Text>
                 
                 {/* Hero Actions */}
                 <View style={styles.heroActions}>
-                  <TouchableOpacity 
-                    style={styles.btnHeroPrimary}
-                    onPress={() => navigation.navigate('Register')}
-                    activeOpacity={0.9}
-                  >
-                    <Text style={styles.btnHeroPrimaryText}>START YOUR JOURNEY</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#8b0000" />
-                  </TouchableOpacity>
+                  <Animated.View style={{ 
+                      width: '100%', 
+                      alignItems: 'center',
+                      opacity: primaryBtnAnim, 
+                      transform: [{ scale: primaryBtnAnim }] 
+                  }}>
+                    <TouchableOpacity 
+                        style={styles.btnHeroPrimary}
+                        onPress={() => navigation.navigate('Register')}
+                        activeOpacity={0.9}
+                    >
+                        <Text style={styles.btnHeroPrimaryText}>START YOUR JOURNEY</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#7f0000" />
+                    </TouchableOpacity>
+                  </Animated.View>
 
-                  <View style={styles.heroSecondaryActions}>
+                  <Animated.View style={[
+                      styles.heroSecondaryActions,
+                      { opacity: secondaryActionsAnim, transform: [{ translateY: translateY(secondaryActionsAnim) }] }
+                  ]}>
                      <TouchableOpacity 
-                        style={styles.btnHeroSecondary}
+                        style={styles.glassBtn}
                         onPress={() => navigation.navigate('Login')}
+                        activeOpacity={0.7}
                      >
-                        <Text style={styles.btnHeroSecondaryText}>SIGN IN</Text>
+                        <Ionicons name="person-outline" size={16} color="#fff" style={{marginRight: 6}}/>
+                        <Text style={styles.glassBtnText}>SIGN IN</Text>
                      </TouchableOpacity>
-                     
-                     <View style={styles.actionDivider} />
-
-                     <TouchableOpacity 
-                        style={styles.btnHeroSecondary}
-                        onPress={() => navigation.navigate('SmartSearch')}
-                     >
-                        <Ionicons name="search" size={14} color="#fff" style={{marginRight: 4}}/>
-                        <Text style={styles.btnHeroSecondaryText}>GUEST SEARCH</Text>
-                     </TouchableOpacity>
-                  </View>
+                  </Animated.View>
                 </View>
 
               </View>
@@ -272,27 +311,27 @@ const styles = StyleSheet.create({
       alignItems: 'center',
   },
   heroTitle: {
-      fontSize: 38,
+      fontSize: 36,
       fontWeight: '900',
       color: '#fff',
       textAlign: 'center',
       lineHeight: 40,
       marginBottom: 20,
-      letterSpacing: -1,
+      letterSpacing: -0.5,
   },
   heroSubtitle: {
       fontSize: 16,
-      color: 'rgba(255,255,255,0.7)',
+      color: 'rgba(255,255,255,0.65)',
       textAlign: 'center',
       lineHeight: 24,
-      marginBottom: 40,
+      marginBottom: 44,
       fontWeight: '500',
       paddingHorizontal: 10,
   },
   heroActions: {
       width: '100%',
       alignItems: 'center',
-      gap: 24,
+      gap: 20,
   },
   btnHeroPrimary: {
       backgroundColor: '#fff',
@@ -301,7 +340,7 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
       paddingVertical: 18,
       paddingHorizontal: 32,
-      borderRadius: 16,
+      borderRadius: 20,
       width: '100%',
       maxWidth: 320,
       gap: 12,
@@ -311,8 +350,8 @@ const styles = StyleSheet.create({
       }),
   },
   btnHeroPrimaryText: {
-      color: '#8b0000',
-      fontSize: 14,
+      color: '#7f0000',
+      fontSize: 15,
       fontWeight: '900',
       letterSpacing: 2,
   },
@@ -320,24 +359,29 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 16,
+      gap: 12,
+      marginTop: 8,
   },
-  btnHeroSecondary: {
+  glassBtn: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
   },
-  btnHeroSecondaryText: {
+  glassBtnText: {
       color: '#fff',
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: 'bold',
-      letterSpacing: 1.5,
-      textDecorationLine: 'underline',
+      letterSpacing: 1,
   },
   actionDivider: {
       width: 1,
       height: 16,
-      backgroundColor: 'rgba(255,255,255,0.3)',
+      backgroundColor: 'rgba(255,255,255,0.15)',
   },
 
   // -- Features --

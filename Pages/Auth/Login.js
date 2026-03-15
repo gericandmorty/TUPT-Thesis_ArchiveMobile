@@ -113,7 +113,10 @@ const LoginScreen = () => {
         }
         
         toast.show(data.message || 'Logged in successfully!', 'success');
-        navigation.navigate('Home');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        });
       } else {
         toast.show(data.message || 'Login failed', 'error');
       }

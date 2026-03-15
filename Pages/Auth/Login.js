@@ -8,55 +8,72 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
-  Image,
+  ActivityIndicator
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
 import API_BASE_URL from '../../api';
 import { useToast } from '../../utils/ToastContext';
-
-const { width } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [idNumber, setIdNumber] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [birthdate, setBirthdate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
   const handleInputChange = (value) => {
-    // Format ID number as user types
-    let formattedValue = value.replace(/[^a-zA-Z0-9]/g, '');
+    let formattedValue = value.toUpperCase();
     
-    // Convert to uppercase
-    formattedValue = formattedValue.toUpperCase();
-    
-    // Add TUPT- prefix if not present
-    if (!formattedValue.startsWith('TUPT') && formattedValue.length > 0) {
-      formattedValue = 'TUPT' + formattedValue;
+    // Formatting logic to allow backspacing without fighting the cursor
+    if (formattedValue.length < idNumber.length) {
+        setIdNumber(formattedValue);
+        return;
+    }
+
+    let clean = formattedValue.replace(/[^A-Z0-9]/g, '');
+    if (clean.length > 0 && !clean.startsWith('TUPT')) {
+      if (!'TUPT'.startsWith(clean)) {
+        clean = 'TUPT' + clean;
+      }
     }
     
-    // Format as TUPT-XX-XXXX
-    if (formattedValue.length > 4) {
-      formattedValue = formattedValue.slice(0, 4) + '-' + formattedValue.slice(4);
+    let result = clean;
+    if (clean.length > 4) {
+      result = clean.slice(0, 4) + '-' + clean.slice(4);
     }
-    if (formattedValue.length > 7) {
-      formattedValue = formattedValue.slice(0, 7) + '-' + formattedValue.slice(7, 11);
+    if (result.length > 7) {
+      result = result.slice(0, 7) + '-' + result.slice(7, 11);
     }
-    // Limit total length to 12 characters (TUPT-XX-XXXX)
-    formattedValue = formattedValue.slice(0, 12);
     
-    setIdNumber(formattedValue);
+    setIdNumber(result.slice(0, 12));
   };
 
-  const validateIDNumber = (idNumber) => {
-    // Validate format: TUPT-XX-XXXX
+  const validateIDNumber = (id) => {
     const idRegex = /^TUPT-\d{2}-\d{4}$/;
-    return idRegex.test(idNumber);
+    return idRegex.test(id);
+  };
+
+  const handleDateChange = (event, date) => {
+      setShowDatePicker(Platform.OS === 'ios');
+      if (date) {
+          setSelectedDate(date);
+          if (Platform.OS !== 'ios') {
+              setShowDatePicker(false);
+          }
+          const formattedDate = date.toISOString().split('T')[0];
+          setBirthdate(formattedDate);
+      } else {
+          setShowDatePicker(false);
+      }
+  };
+
+  const showDatepicker = () => {
+      setShowDatePicker(true);
   };
 
   const handleLogin = async () => {
@@ -66,7 +83,7 @@ const LoginScreen = () => {
     }
 
     if (!validateIDNumber(idNumber)) {
-      toast.show('Please enter a valid ID number in format: TUPT-XX-XXXX', 'error');
+      toast.show('Please enter a valid ID number format: TUPT-XX-XXXX', 'error');
       return;
     }
     
@@ -87,20 +104,15 @@ const LoginScreen = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data in AsyncStorage
-        const userData = {
-          _id: data.user._id,
-          name: data.user.name,
-          idNumber: data.user.idNumber,
-          birthdate: data.user.birthdate,
-          age: data.user.age,
-          createdAt: data.user.createdAt,
-        };
+        // Save the full user object just like the web does
+        const userData = data.user;
         
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        if (data.token) {
+            await AsyncStorage.setItem('userToken', data.token);
+        }
         
         toast.show(data.message || 'Logged in successfully!', 'success');
-        console.log('User data stored:', userData);
         navigation.navigate('Home');
       } else {
         toast.show(data.message || 'Login failed', 'error');
@@ -116,334 +128,264 @@ const LoginScreen = () => {
   const handleClear = () => {
     setIdNumber('');
     setPassword('');
+    setBirthdate('');
   };
 
   return (
-    <LinearGradient
-      colors={['#fef2f2', '#fee2e2', '#fecaca']}
-      style={styles.gradientBackground}
-    >
+    <View style={styles.container}>
+      {/* Spacer to emulate the top spacing of Web */}
+      <View style={{ height: Platform.OS === 'ios' ? 60 : 40 }} />
+      
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.loginSection}>
-            {/* Logo/Header Section */}
-            <View style={styles.headerSection}>
-              <View style={styles.logoContainer}>
-                <Image 
-                  source={require('../../assets/tup-logo.png')} 
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-              </View>
-              <Text style={styles.welcomeTitle}>TUPT-Thesis Archive</Text>
-              <Text style={styles.welcomeSubtitle}>Sign in</Text>
-            </View>
+          {/* Main Card replicating web shadow-2xl border-gray-200 */}
+          <View style={styles.card}>
+              
+             {/* Header text + Line divider */}
+             <Text style={styles.headerTitle}>SIGN IN</Text>
+             <View style={styles.divider} />
 
-            {/* Login Card */}
-            <View style={styles.loginBox}>
-              {/* ID Number Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>ID Number</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="card-outline" size={20} color="#6b7280" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="TUPT-XX-XXXX"
-                    placeholderTextColor="#9ca3af"
-                    value={idNumber}
-                    onChangeText={handleInputChange}
-                    autoCapitalize="characters"
-                    keyboardType="default"
-                    maxLength={12}
-                  />
-                </View>
-                <Text style={styles.hintText}>Format: TUPT-XX-XXXX</Text>
-              </View>
-
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#6b7280" style={styles.inputIcon} />
-                  <TextInput
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#9ca3af"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                  />
-                  <TouchableOpacity 
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
-                    <Ionicons 
-                      name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                      size={20} 
-                      color="#6b7280" 
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Forgot Password Link */}
-              <TouchableOpacity style={styles.forgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-
-              {/* Buttons */}
-              <View style={styles.buttons}>
-                <TouchableOpacity 
-                  style={[styles.btnClear, isLoading && styles.disabledButton]}
-                  onPress={handleClear}
-                  disabled={isLoading}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="close-circle-outline" size={18} color="#c7242c" />
-                  <Text style={styles.clearButtonText}>Clear</Text>
-                </TouchableOpacity>
+             {/* Form Group */}
+             <View style={styles.formGroup}>
                 
-                <TouchableOpacity 
-                  style={[styles.btnLogin, isLoading && styles.disabledButton]}
-                  onPress={handleLogin}
-                  disabled={isLoading}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={['#c7242c', '#991b1b']}
-                    style={styles.loginGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    {isLoading ? (
-                      <Text style={styles.loginButtonText}>Logging in...</Text>
-                    ) : (
-                      <>
-                        <Text style={styles.loginButtonText}>Login</Text>
-                        <Ionicons name="arrow-forward" size={18} color="white" />
-                      </>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                {/* ID Number */}
+                <View style={styles.inputContainer}>
+                   <Text style={styles.label}>ID Number:</Text>
+                   <TextInput
+                      style={styles.input}
+                      placeholder="TUPT-XX-XXXX"
+                      placeholderTextColor="#9ca3af"
+                      value={idNumber}
+                      onChangeText={handleInputChange}
+                      autoCapitalize="characters"
+                      keyboardType="default"
+                   />
+                </View>
 
-              {/* Sign Up Link */}
-              <View style={styles.signUpContainer}>
-                <Text style={styles.signUpText}>Don't have an account? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                  <Text style={styles.signUpLink}>Sign up</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+                {/* Password Input */}
+                <View style={styles.inputContainer}>
+                   <Text style={styles.label}>Password:</Text>
+                   <TextInput
+                      style={styles.input}
+                      placeholder="Password"
+                      placeholderTextColor="#9ca3af"
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry={true}
+                      autoCapitalize="none"
+                   />
+                </View>
+
+                {/* Birthdate picker */}
+                <View style={styles.inputContainer}>
+                   <Text style={styles.label}>Birthdate:</Text>
+                   <TouchableOpacity onPress={showDatepicker} style={[styles.input, { justifyContent: 'center' }]} activeOpacity={0.7}>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: birthdate ? '#111827' : '#9ca3af' }}>
+                          {birthdate || 'YYYY-MM-DD'}
+                      </Text>
+                   </TouchableOpacity>
+                   {showDatePicker && (
+                       <DateTimePicker
+                           value={selectedDate}
+                           mode="date"
+                           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                           onChange={handleDateChange}
+                           maximumDate={new Date()}
+                       />
+                   )}
+                </View>
+
+                {/* Action Buttons */}
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity 
+                        style={styles.clearBtn}
+                        onPress={handleClear}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.clearBtnText}>Clear</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[styles.submitBtn, isLoading && styles.disabledBtn]}
+                        onPress={handleLogin}
+                        disabled={isLoading}
+                        activeOpacity={0.8}
+                    >
+                        {isLoading ? (
+                           <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                           <Text style={styles.submitBtnText}>Sign In</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+
+             </View>
+
+             {/* Footer Links */}
+             <View style={styles.footer}>
+                 <View style={styles.footerTextRow}>
+                     <Text style={styles.footerTextNormal}>Don't have an account? </Text>
+                     <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                         <Text style={styles.footerLinkBold}>Register here</Text>
+                     </TouchableOpacity>
+                 </View>
+                 
+                 <TouchableOpacity style={styles.forgotBtn}>
+                     <Text style={styles.forgotText}>FORGOT PASSWORD?</Text>
+                 </TouchableOpacity>
+             </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  gradientBackground: {
-    flex: 1,
-  },
   container: {
-    flex: 1,
+      flex: 1,
+      backgroundColor: 'transparent',
+  },
+  keyboardView: {
+      flex: 1,
   },
   scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+      flexGrow: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingBottom: 40,
   },
-  loginSection: {
-    width: '100%',
-    alignItems: 'center',
+  card: {
+      backgroundColor: '#fff',
+      width: '100%',
+      maxWidth: 500,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      padding: 24,
+      paddingTop: 32,
+      ...Platform.select({
+          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },
+          android: { elevation: 15 }
+      }),
   },
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: 30,
+  headerTitle: {
+      color: '#111827',
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 1.5,
   },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    borderWidth: 3,
-    borderColor: '#c7242c',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#c7242c',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+  divider: {
+      height: 1,
+      backgroundColor: '#e5e7eb',
+      width: '100%',
+      marginBottom: 24,
   },
-  logoImage: {
-    width: 70,
-    height: 70,
-  },
-  welcomeTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  loginBox: {
-    width: width > 480 ? 420 : '100%',
-    maxWidth: 420,
-    padding: 30,
-    borderRadius: 24,
-    backgroundColor: 'white',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+  formGroup: {
+      gap: 20,
   },
   inputContainer: {
-    marginBottom: 20,
+      gap: 4,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 16,
-  },
-  inputIcon: {
-    marginRight: 10,
+      fontSize: 13,
+      fontWeight: 'bold',
+      color: '#4b5563',
   },
   input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#1f2937',
+      width: '100%',
+      height: 48,
+      backgroundColor: '#f9fafb',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      fontSize: 14,
+      color: '#111827',
+      fontWeight: 'bold',
   },
-  passwordInput: {
-    paddingRight: 40,
+  buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 8,
+      marginBottom: 8,
   },
-  eyeIcon: {
-    position: 'absolute',
-    right: 16,
-    padding: 4,
+  clearBtn: {
+      backgroundColor: '#fff',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderWidth: 2,
+      borderColor: '#e5e7eb',
+      borderRadius: 8,
   },
-  hintText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 6,
-    fontStyle: 'italic',
+  clearBtnText: {
+      color: '#6b7280',
+      fontSize: 11,
+      fontWeight: 'bold',
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
+  submitBtn: {
+      backgroundColor: '#8b0000',
+      paddingHorizontal: 32,
+      paddingVertical: 10,
+      borderRadius: 8,
+      minWidth: 100,
+      alignItems: 'center',
+      ...Platform.select({
+          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+          android: { elevation: 5 }
+      })
   },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: '#c7242c',
-    fontWeight: '600',
+  submitBtnText: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: '900',
+      textTransform: 'none',
   },
-  buttons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+  disabledBtn: {
+      opacity: 0.7,
   },
-  btnClear: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    gap: 6,
+  footer: {
+      borderTopWidth: 1,
+      borderTopColor: '#e5e7eb',
+      paddingTop: 24,
+      marginTop: 16,
+      alignItems: 'center',
   },
-  clearButtonText: {
-    color: '#c7242c',
-    fontSize: 15,
-    fontWeight: '600',
+  footerTextRow: {
+      flexDirection: 'row',
+      marginBottom: 12,
   },
-  btnLogin: {
-    flex: 2,
-    borderRadius: 12,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#c7242c',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+  footerTextNormal: {
+      color: '#4b5563',
+      fontSize: 13,
+      fontWeight: '500',
   },
-  loginGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
+  footerLinkBold: {
+      color: '#b91c1c',
+      fontSize: 13,
+      fontWeight: '900',
+      textDecorationLine: 'underline',
   },
-  loginButtonText: {
-    color: 'white',
-    fontSize: 15,
-    fontWeight: 'bold',
+  forgotBtn: {
+      marginTop: 4,
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  signUpContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  signUpText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  signUpLink: {
-    fontSize: 14,
-    color: '#c7242c',
-    fontWeight: '600',
-  },
+  forgotText: {
+      color: '#9ca3af',
+      fontSize: 11,
+      fontWeight: 'bold',
+      letterSpacing: 1.5,
+  }
 });
 
 export default LoginScreen;

@@ -28,7 +28,12 @@ const HomeScreen = () => {
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [user, setUser] = useState(null);
-    const fadeAnim = useState(new Animated.Value(0))[0];
+
+    // Animation States
+    const welcomeAnim = React.useRef(new Animated.Value(0)).current;
+    const statsAnim = React.useRef(new Animated.Value(0)).current;
+    const aiLogAnim = React.useRef(new Animated.Value(0)).current;
+    const secondaryGridAnim = React.useRef(new Animated.Value(0)).current;
 
     // Data States
     const [thesisCount, setThesisCount] = useState(0);
@@ -44,16 +49,25 @@ const HomeScreen = () => {
     useEffect(() => {
         if (isFocused) {
             loadDashboardData();
+            startEntranceAnimations();
         }
     }, [isFocused]);
 
-    useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-        }).start();
-    }, []);
+    const startEntranceAnimations = () => {
+        // Reset
+        welcomeAnim.setValue(0);
+        statsAnim.setValue(0);
+        aiLogAnim.setValue(0);
+        secondaryGridAnim.setValue(0);
+
+        // Staggered sequence
+        Animated.stagger(150, [
+            Animated.timing(welcomeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+            Animated.timing(statsAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+            Animated.timing(aiLogAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+            Animated.timing(secondaryGridAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ]).start();
+    };
 
     const loadDashboardData = async () => {
         try {
@@ -235,18 +249,26 @@ const HomeScreen = () => {
                 bounces={false}
                 contentContainerStyle={{ flexGrow: 1, paddingBottom: 60 }}
             >
-                <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+                <View style={styles.mainContent}>
+                    
+                    {/* Welcome Header */}
+                    <Animated.View style={[
+                        styles.welcomeSection,
+                        { 
+                            opacity: welcomeAnim,
+                            transform: [{ translateY: welcomeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+                        }
+                    ]}>
+                        <Text style={styles.greetingHeader}>{getGreeting()}</Text>
+                        <Text style={styles.welcomeTitle}>Welcome back, {user?.name || 'Researcher'}</Text>
+                        <Text style={styles.welcomeSub}>Manage your research and explore the thesis collection.</Text>
+                    </Animated.View>
 
-                    <View style={styles.mainContent}>
-                        
-                        {/* Welcome Header */}
-                        <View style={styles.welcomeSection}>
-                            <Text style={styles.greetingHeader}>{getGreeting()}</Text>
-                            <Text style={styles.welcomeTitle}>Welcome back, {user?.name || 'Researcher'}</Text>
-                            <Text style={styles.welcomeSub}>Manage your research and explore the thesis collection.</Text>
-                        </View>
-
-                        {/* Top Stats ScrollView */}
+                    {/* Top Stats ScrollView */}
+                    <Animated.View style={{ 
+                        opacity: statsAnim,
+                        transform: [{ translateY: statsAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+                    }}>
                         <ScrollView 
                             horizontal 
                             showsHorizontalScrollIndicator={false}
@@ -260,7 +282,7 @@ const HomeScreen = () => {
                                     <Text style={styles.statValue}>{thesisCount.toLocaleString()}</Text>
                                     <Text style={[styles.statLabelBottom, { color: '#ef4444' }]}>THESES INDEXED</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
+                                <View style={[styles.statIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
                                     <Ionicons name="search" size={24} color="#f87171" />
                                 </View>
                             </View>
@@ -272,7 +294,7 @@ const HomeScreen = () => {
                                     <Text style={styles.statValue}>{aiHistory.length}</Text>
                                     <Text style={[styles.statLabelBottom, { color: '#a855f7' }]}>RECOMMENDATIONS</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: '#faf5ff', borderColor: '#f3e8ff' }]}>
+                                <View style={[styles.statIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.1)', borderColor: 'rgba(168, 85, 247, 0.2)' }]}>
                                     <Ionicons name="hardware-chip" size={24} color="#c084fc" />
                                 </View>
                             </View>
@@ -284,148 +306,160 @@ const HomeScreen = () => {
                                     <Text style={styles.statValue}>{recentTheses.length}</Text>
                                     <Text style={[styles.statLabelBottom, { color: '#f97316' }]}>ACTIVE ITEMS</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: '#fff7ed', borderColor: '#ffedd5' }]}>
+                                <View style={[styles.statIconBox, { backgroundColor: 'rgba(249, 115, 22, 0.1)', borderColor: 'rgba(249, 115, 22, 0.2)' }]}>
                                     <Ionicons name="time" size={24} color="#fb923c" />
                                 </View>
                             </View>
                         </ScrollView>
+                    </Animated.View>
 
-                        {/* AI Recommendation Log Area */}
-                        <View style={styles.sectionContainer}>
-                            <View style={styles.sectionHeader}>
-                                <View style={styles.sectionTitleRow}>
-                                    <View style={styles.titleDividerRed} />
-                                    <Text style={styles.sectionTitleText}>AI RECOMMENDATION LOG</Text>
+                    {/* AI Recommendation Log Area */}
+                    <Animated.View style={[
+                        styles.sectionContainer,
+                        { 
+                            opacity: aiLogAnim,
+                            transform: [{ translateY: aiLogAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+                        }
+                    ]}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionTitleRow}>
+                                <View style={styles.titleDividerRed} />
+                                <Text style={styles.sectionTitleText}>AI RECOMMENDATION LOG</Text>
+                            </View>
+                            
+                            <View style={styles.sectionHeaderActions}>
+                               {aiHistory.length > 0 && (
+                                   <TouchableOpacity style={styles.clearHistoryBtn} onPress={confirmClearAllAiHistory}>
+                                       <Text style={styles.clearHistoryText}>CLEAR HISTORY</Text>
+                                   </TouchableOpacity>
+                               )}
+                               <View style={styles.aiBadge}>
+                                   <Ionicons name="hardware-chip" size={12} color="#93c5fd" />
+                                   <Text style={styles.aiBadgeText}>AI POWERED</Text>
+                               </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.cardBlock}>
+                            {loadingAi ? (
+                                <View style={styles.emptyState}>
+                                    <ActivityIndicator size="small" color="#9ca3af" />
+                                    <Text style={styles.emptyText}>Loading AI history...</Text>
                                 </View>
-                                
-                                <View style={styles.sectionHeaderActions}>
-                                   {aiHistory.length > 0 && (
-                                       <TouchableOpacity style={styles.clearHistoryBtn} onPress={confirmClearAllAiHistory}>
-                                           <Text style={styles.clearHistoryText}>CLEAR HISTORY</Text>
+                            ) : aiHistory.length > 0 ? (
+                                <View>
+                                    {aiHistory.slice(0, 5).map((item, index) => (
+                                        <TouchableOpacity 
+                                            key={item._id} 
+                                            style={[styles.historyItemRow, index !== aiHistory.slice(0, 5).length -1 && styles.borderBottom]}
+                                            onPress={() => setSelectedAiItem(item)}
+                                        >
+                                            <View style={styles.historyItemBox}>
+                                                <View style={styles.historyIconBox}>
+                                                    <Ionicons name="hardware-chip" size={16} color="white" />
+                                                </View>
+                                                <View style={styles.historyTextFlex}>
+                                                    <Text style={styles.historyItemTitle} numberOfLines={1}>
+                                                        {item.prompt}
+                                                    </Text>
+                                                    <Text style={styles.historyItemDate}>
+                                                        {new Date(item.createdAt).toLocaleDateString()}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                            <TouchableOpacity 
+                                                style={styles.deleteIconBtn}
+                                                onPress={() => confirmDeleteAiHistory(item._id)}
+                                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                            >
+                                                <Ionicons name="trash" size={16} color="rgba(255,255,255,0.3)" />
+                                            </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ) : (
+                                <View style={styles.emptyState}>
+                                    <View style={styles.emptyIconCircle}>
+                                        <Ionicons name="hardware-chip" size={32} color="rgba(255,255,255,0.2)" />
+                                    </View>
+                                    <Text style={styles.emptyText}>No AI recommendations found.</Text>
+                                </View>
+                            )}
+                        </View>
+                    </Animated.View>
+
+                    {/* Secondary Grid (Recent + Stats) */}
+                    <Animated.View style={[
+                        styles.secondaryGrid,
+                        { 
+                            opacity: secondaryGridAnim,
+                            transform: [{ translateY: secondaryGridAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+                        }
+                    ]}>
+                         
+                         {/* Recent Views */}
+                         <View style={styles.gridColumn}>
+                              <View style={styles.sectionHeader}>
+                                   <View style={styles.sectionTitleRow}>
+                                        <View style={[styles.titleDividerRed, { backgroundColor: '#f97316' }]} />
+                                        <Text style={styles.sectionTitleText}>RECENT VIEWS</Text>
+                                   </View>
+                                   {recentTheses.length > 0 && (
+                                       <TouchableOpacity style={styles.clearHistoryBtnOrange} onPress={clearRecentViews}>
+                                           <Text style={styles.clearHistoryTextOrange}>CLEAR ALL</Text>
                                        </TouchableOpacity>
                                    )}
-                                   <View style={styles.aiBadge}>
-                                       <Ionicons name="hardware-chip" size={12} color="#93c5fd" />
-                                       <Text style={styles.aiBadgeText}>AI POWERED</Text>
+                              </View>
+
+                              <View style={styles.cardBlock}>
+                                  {recentTheses.length > 0 ? (
+                                      recentTheses.slice(0, 3).map((thesis, idx) => (
+                                          <TouchableOpacity 
+                                               key={thesis.id || idx}
+                                               style={[styles.recentItemView, idx !== recentTheses.slice(0, 3).length - 1 && styles.borderBottom]}
+                                               onPress={() => navigation.navigate('ThesisDetail', { thesisId: thesis.id })}
+                                          >
+                                               <Text style={styles.recentItemYear}>{thesis.year || 'No Year'}</Text>
+                                               <Text style={styles.recentItemTitle} numberOfLines={2}>{thesis.title}</Text>
+                                          </TouchableOpacity>
+                                      ))
+                                  ) : (
+                                      <View style={styles.emptyStateMinimal}>
+                                           <Text style={styles.emptyTextSub}>No history found</Text>
+                                      </View>
+                                  )}
+                              </View>
+                         </View>
+
+                         {/* Archive Stats */}
+                         <View style={styles.gridColumn}>
+                              <View style={styles.sectionHeader}>
+                                   <View style={styles.sectionTitleRow}>
+                                        <View style={[styles.titleDividerRed, { backgroundColor: '#fecaca' }]} />
+                                        <Text style={styles.sectionTitleText}>ARCHIVE STATS</Text>
                                    </View>
-                                </View>
-                            </View>
+                              </View>
 
-                            <View style={styles.cardBlock}>
-                                {loadingAi ? (
-                                    <View style={styles.emptyState}>
-                                        <ActivityIndicator size="small" color="#9ca3af" />
-                                        <Text style={styles.emptyText}>Loading AI history...</Text>
-                                    </View>
-                                ) : aiHistory.length > 0 ? (
-                                    <View>
-                                        {aiHistory.slice(0, 5).map((item, index) => (
-                                            <TouchableOpacity 
-                                                key={item._id} 
-                                                style={[styles.historyItemRow, index !== aiHistory.slice(0, 5).length -1 && styles.borderBottom]}
-                                                onPress={() => setSelectedAiItem(item)}
-                                            >
-                                                <View style={styles.historyItemBox}>
-                                                    <View style={styles.historyIconBox}>
-                                                        <Ionicons name="hardware-chip" size={16} color="#9ca3af" />
-                                                    </View>
-                                                    <View style={styles.historyTextFlex}>
-                                                        <Text style={styles.historyItemTitle} numberOfLines={1}>
-                                                            {item.prompt}
-                                                        </Text>
-                                                        <Text style={styles.historyItemDate}>
-                                                            {new Date(item.createdAt).toLocaleDateString()}
-                                                        </Text>
-                                                    </View>
-                                                </View>
-                                                <TouchableOpacity 
-                                                    style={styles.deleteIconBtn}
-                                                    onPress={() => confirmDeleteAiHistory(item._id)}
-                                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                                >
-                                                    <Ionicons name="trash" size={16} color="#d1d5db" />
-                                                </TouchableOpacity>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                ) : (
-                                    <View style={styles.emptyState}>
-                                        <View style={styles.emptyIconCircle}>
-                                            <Ionicons name="hardware-chip" size={32} color="#bfdbfe" />
-                                        </View>
-                                        <Text style={styles.emptyText}>No AI title recommendations found.</Text>
-                                    </View>
-                                )}
-                            </View>
-                        </View>
+                              <View style={styles.cardBlock}>
+                                   {deptCounts.slice(0, 5).map((dept, idx) => (
+                                       <TouchableOpacity 
+                                           key={dept.category + idx}
+                                           style={[styles.deptRow, idx !== deptCounts.slice(0, 5).length - 1 && styles.borderBottom]}
+                                           onPress={() => {
+                                                // Route to smart search with category filter applied
+                                                navigation.navigate('SearchResult', { category: dept.category });
+                                           }}
+                                       >
+                                            <Text style={styles.deptName}>{dept.category}</Text>
+                                            <Text style={styles.deptCount}>{dept.count}</Text>
+                                       </TouchableOpacity>
+                                   ))}
+                              </View>
+                         </View>
 
-                        {/* Secondary Grid (Recent + Stats) */}
-                        <View style={styles.secondaryGrid}>
-                             
-                             {/* Recent Views */}
-                             <View style={styles.gridColumn}>
-                                  <View style={styles.sectionHeader}>
-                                       <View style={styles.sectionTitleRow}>
-                                            <View style={[styles.titleDividerRed, { backgroundColor: '#f97316' }]} />
-                                            <Text style={styles.sectionTitleText}>RECENT VIEWS</Text>
-                                       </View>
-                                       {recentTheses.length > 0 && (
-                                           <TouchableOpacity style={styles.clearHistoryBtnOrange} onPress={clearRecentViews}>
-                                               <Text style={styles.clearHistoryTextOrange}>CLEAR ALL</Text>
-                                           </TouchableOpacity>
-                                       )}
-                                  </View>
+                    </Animated.View>
 
-                                  <View style={styles.cardBlock}>
-                                      {recentTheses.length > 0 ? (
-                                          recentTheses.slice(0, 3).map((thesis, idx) => (
-                                              <TouchableOpacity 
-                                                   key={thesis.id || idx}
-                                                   style={styles.recentItemView}
-                                                   onPress={() => navigation.navigate('ThesisDetail', { id: thesis.id })}
-                                              >
-                                                   <Text style={styles.recentItemYear}>{thesis.year || 'No Year'}</Text>
-                                                   <Text style={styles.recentItemTitle} numberOfLines={2}>{thesis.title}</Text>
-                                              </TouchableOpacity>
-                                          ))
-                                      ) : (
-                                          <View style={styles.emptyStateMinimal}>
-                                               <Text style={styles.emptyTextSub}>No history found</Text>
-                                          </View>
-                                      )}
-                                  </View>
-                             </View>
-
-                             {/* Archive Stats */}
-                             <View style={styles.gridColumn}>
-                                  <View style={styles.sectionHeader}>
-                                       <View style={styles.sectionTitleRow}>
-                                            <View style={[styles.titleDividerRed, { backgroundColor: '#fecaca' }]} />
-                                            <Text style={styles.sectionTitleText}>ARCHIVE STATS</Text>
-                                       </View>
-                                  </View>
-
-                                  <View style={styles.cardBlock}>
-                                       {deptCounts.slice(0, 5).map((dept, idx) => (
-                                           <TouchableOpacity 
-                                               key={dept.category + idx}
-                                               style={[styles.deptRow, idx !== deptCounts.slice(0, 5).length - 1 && styles.borderBottom]}
-                                               onPress={() => {
-                                                    // Route to smart search with category filter applied
-                                                    navigation.navigate('SmartSearch', { selectedDepartment: dept.category });
-                                               }}
-                                           >
-                                                <Text style={styles.deptName}>{dept.category}</Text>
-                                                <Text style={styles.deptCount}>{dept.count}</Text>
-                                           </TouchableOpacity>
-                                       ))}
-                                  </View>
-                             </View>
-
-                        </View>
-
-                    </View>
-                </Animated.View>
+                </View>
             </ScrollView>
 
             {/* Selected AI Modal */}
@@ -510,14 +544,16 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     statCard: {
-        backgroundColor: '#fff',
-        borderRadius: 32,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 24,
         padding: 24,
-        width: width * 0.75, // wide enough to peek the next
+        width: width * 0.75,
         minHeight: 140,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16 },
             android: { elevation: 6 }
@@ -528,7 +564,7 @@ const styles = StyleSheet.create({
     },
     statLabelTop: {
         fontSize: 10,
-        color: '#9ca3af',
+        color: '#6b7280',
         fontWeight: '900',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
@@ -559,13 +595,13 @@ const styles = StyleSheet.create({
     // Sections Framework
     sectionContainer: {
         paddingHorizontal: 24,
-        marginBottom: 48,
+        marginBottom: 40,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 20,
+        marginBottom: 16,
         flexWrap: 'wrap',
         gap: 10,
     },
@@ -581,7 +617,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     sectionTitleText: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '900',
         color: '#fff',
         letterSpacing: 1.5,
@@ -593,9 +629,9 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     clearHistoryBtn: {
-        backgroundColor: 'rgba(127, 29, 29, 0.4)',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
-        borderColor: '#7f1d1d',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -603,13 +639,13 @@ const styles = StyleSheet.create({
     clearHistoryText: {
         fontSize: 9,
         fontWeight: '900',
-        color: '#fca5a5',
+        color: '#fff',
         letterSpacing: 1.5,
     },
     clearHistoryBtnOrange: {
-        backgroundColor: 'rgba(194, 65, 12, 0.4)', 
+        backgroundColor: 'rgba(249, 115, 22, 0.1)', 
         borderWidth: 1,
-        borderColor: '#7c2d12',
+        borderColor: 'rgba(249, 115, 22, 0.2)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -621,7 +657,7 @@ const styles = StyleSheet.create({
         letterSpacing: 1.5,
     },
     aiBadge: {
-        backgroundColor: 'rgba(30, 58, 138, 0.5)',
+        backgroundColor: 'rgba(30, 58, 138, 0.3)',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
@@ -629,7 +665,7 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#1e40af',
+        borderColor: 'rgba(147, 197, 253, 0.2)',
     },
     aiBadgeText: {
         fontSize: 9,
@@ -638,27 +674,23 @@ const styles = StyleSheet.create({
         letterSpacing: 1.5,
     },
     cardBlock: {
-        backgroundColor: '#fff',
-        borderRadius: 32,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#f3f4f6',
+        borderColor: 'rgba(255, 255, 255, 0.2)',
         overflow: 'hidden',
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
-            android: { elevation: 2 }
-        }),
     },
 
-    // AI History List Items
+    // List Items
     historyItemRow: {
-        padding: 24,
+        padding: 20,
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
     },
     borderBottom: {
         borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     },
     historyItemBox: {
         flexDirection: 'row',
@@ -667,10 +699,10 @@ const styles = StyleSheet.create({
         marginRight: 16,
     },
     historyIconBox: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        backgroundColor: '#f3f4f6',
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
@@ -680,19 +712,19 @@ const styles = StyleSheet.create({
     },
     historyItemTitle: {
         fontSize: 14,
-        fontWeight: '900',
-        color: '#111827',
-        marginBottom: 4,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 2,
     },
     historyItemDate: {
         fontSize: 10,
-        color: '#9ca3af',
+        color: 'rgba(255, 255, 255, 0.5)',
         fontWeight: 'bold',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
     },
     deleteIconBtn: {
-        paddingTop: 4,
+        padding: 4,
     },
     emptyState: {
         padding: 40,
@@ -703,14 +735,14 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: '#eff6ff',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
     },
     emptyText: {
         fontSize: 14,
-        color: '#9ca3af',
+        color: 'rgba(255, 255, 255, 0.5)',
         fontWeight: '500',
         marginTop: 8,
     },
@@ -718,27 +750,27 @@ const styles = StyleSheet.create({
     // Secondary Grid Items
     secondaryGrid: {
         paddingHorizontal: 24,
-        gap: 40,
+        gap: 32,
         paddingBottom: 40,
     },
     gridColumn: {
         flex: 1,
     },
     recentItemView: {
-        padding: 24,
+        padding: 20,
     },
     recentItemYear: {
         fontSize: 9,
         fontWeight: '900',
-        color: '#ef4444',
+        color: '#fca5a5',
         textTransform: 'uppercase',
         letterSpacing: 2,
-        marginBottom: 8,
+        marginBottom: 4,
     },
     recentItemTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#111827',
+        color: '#fff',
         lineHeight: 20,
     },
     emptyStateMinimal: {
@@ -748,27 +780,27 @@ const styles = StyleSheet.create({
     emptyTextSub: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#9ca3af',
+        color: 'rgba(255, 255, 255, 0.4)',
     },
 
     deptRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 24,
-        paddingVertical: 18,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
     },
     deptName: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#6b7280',
+        color: 'rgba(255, 255, 255, 0.7)',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
     },
     deptCount: {
         fontSize: 16,
         fontWeight: '900',
-        color: '#111827',
+        color: '#fff',
     },
 
     // Modal Overlays

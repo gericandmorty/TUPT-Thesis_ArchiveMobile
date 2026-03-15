@@ -54,6 +54,7 @@ const ThesisDetailScreen = () => {
 
       if (response.ok) {
         setThesis(data);
+        saveToRecentHistory(data); // Save to history when loaded
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 600,
@@ -67,6 +68,31 @@ const ThesisDetailScreen = () => {
       setError('Network error getting thesis details');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const saveToRecentHistory = async (thesisData) => {
+    try {
+      const recentStr = await AsyncStorage.getItem('recent_theses');
+      let recentList = recentStr ? JSON.parse(recentStr) : [];
+      
+      // Create simplified item
+      const newItem = {
+        id: thesisData.id || thesisData._id,
+        title: thesisData.title,
+        year: thesisData.year_range || thesisData.year || 'Unknown'
+      };
+
+      // Remove existing to avoid duplicates and move to top
+      recentList = recentList.filter(item => item.id !== newItem.id);
+      recentList.unshift(newItem);
+
+      // Keep only last 10
+      recentList = recentList.slice(0, 10);
+
+      await AsyncStorage.setItem('recent_theses', JSON.stringify(recentList));
+    } catch (err) {
+      console.log('Error saving thesis to history:', err);
     }
   };
 

@@ -8,16 +8,28 @@ import {
   Dimensions,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import API_BASE_URL from '../../api';
 
 const { width, height } = Dimensions.get('window');
 
 const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
   const slideAnim = React.useRef(new Animated.Value(-width)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  
+  // Premium Animation States
+  const profileAnim = React.useRef(new Animated.Value(0)).current;
+  const itemAnims = React.useRef([
+      new Animated.Value(0), // HOME
+      new Animated.Value(0), // ANALYSIS WORKSPACE
+      new Animated.Value(0), // SUBMIT THESIS
+      new Animated.Value(0)  // MY SUBMISSIONS
+  ]).current;
+
   const [user, setUser] = useState(null);
 
   // Load user data from AsyncStorage when menu becomes visible
@@ -29,9 +41,32 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
 
   const loadUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        setUser(JSON.parse(userData));
+      const userDataStr = await AsyncStorage.getItem('userData');
+      const token = await AsyncStorage.getItem('userToken');
+      
+      if (userDataStr) {
+        const cached = JSON.parse(userDataStr);
+        setUser(cached);
+
+        // Fetch latest profile from API to keep data fresh (like the web profile page does)
+        if (token && cached._id) {
+          try {
+            const res = await fetch(`${API_BASE_URL}/user/profile?userId=${cached._id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.success && data.data?.user) {
+                // Save full user object — exactly like web does
+                setUser(data.data.user);
+                await AsyncStorage.setItem('userData', JSON.stringify(data.data.user));
+              }
+            }
+          } catch (fetchErr) {
+            // Silently fail — cached data is still shown
+            console.log('Could not refresh profile from API:', fetchErr.message);
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -40,6 +75,7 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
 
   React.useEffect(() => {
     if (isVisible) {
+      // Step 1: Slide menu and fade overlay
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
@@ -51,8 +87,27 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
           duration: 300,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        // Step 2: Entrance animation for profile
+        Animated.timing(profileAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+
+        // Step 3: Staggered entrance for menu items
+        const itemAnimations = itemAnims.map((anim, index) => 
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 300,
+            delay: index * 60,
+            useNativeDriver: true,
+          })
+        );
+        Animated.parallel(itemAnimations).start();
+      });
     } else {
+      // Step 4: Out animation
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -width,
@@ -64,36 +119,38 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
           duration: 250,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        // Reset all entrance animations for next opening
+        profileAnim.setValue(0);
+        itemAnims.forEach(anim => anim.setValue(0));
+      });
     }
   }, [isVisible]);
 
+  // Updated navigation routes matching the screenshot
   const menuItems = [
-    { icon: 'home', label: 'Home', screen: 'Home', gradient: ['#6366f1', '#4f46e5'] },
-    { icon: 'document-text', label: 'My Documents', screen: 'ThesisAnalysis', gradient: ['#ec4899', '#db2777'] },
-    { icon: 'analytics', label: 'Analysis', screen: 'Analysis', gradient: ['#8b5cf6', '#7c3aed'] },
-    { icon: 'library', label: 'Library', screen: 'Library', gradient: ['#f59e0b', '#d97706'] },
-    { icon: 'settings', label: 'Settings', screen: 'Settings', gradient: ['#14b8a6', '#0d9488'] },
-    { icon: 'help-circle', label: 'Help & Support', screen: 'Help', gradient: ['#10b981', '#059669'] },
+    { icon: 'home', label: 'HOME', screen: 'Home' },
+    { icon: 'document-text', label: 'ANALYSIS WORKSPACE', screen: 'AnalysisWorkspace' },
+    { icon: 'cloud-upload', label: 'SUBMIT THESIS', screen: 'SubmitThesis' },
+    { icon: 'folder', label: 'MY SUBMISSIONS', screen: 'MySubmissions' },
   ];
 
   const handleMenuItemPress = (screen) => {
     onClose();
-    // Navigate to the specified screen
+    // Navigate to the specified screen. Need to ensure these exist in App.js
     if (navigation && screen) {
-      navigation.navigate(screen);
+       navigation.navigate(screen);
     }
   };
 
   const handleLogout = async () => {
     try {
-      // Remove user data from AsyncStorage
       await AsyncStorage.removeItem('userData');
+      await AsyncStorage.removeItem('userToken');
       setUser(null);
       onClose();
       // Navigate to login screen
       navigation.navigate('Login');
-      console.log('User logged out successfully');
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -117,7 +174,7 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
         />
       </Animated.View>
       
-      {/* Menu */}
+      {/* Menu Side Panel */}
       <Animated.View 
         style={[
           styles.menuContainer,
@@ -125,17 +182,22 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
         ]}
       >
         <LinearGradient
-          colors={['#ffffff', '#fef2f2']}
+          colors={['#7f0000', '#450a0a']} // Deep dark continuous red
           style={styles.menuGradient}
         >
-          {/* Header Section with Red Gradient */}
-          <LinearGradient
-            colors={['#c7242c', '#991b1b']}
-            style={styles.headerSection}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            {/* User Profile Section */}
+          {/* Top Profile Section */}
+          <Animated.View style={[
+            styles.headerSection,
+            {
+              opacity: profileAnim,
+              transform: [{
+                translateY: profileAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0]
+                })
+              }]
+            }
+          ]}>
             <TouchableOpacity 
               style={styles.userSection}
               onPress={() => {
@@ -145,129 +207,104 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
               activeOpacity={0.8}
             >
               <View style={styles.userAvatarContainer}>
-                <LinearGradient
-                  colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.1)']}
-                  style={styles.userAvatar}
-                >
-                  <Ionicons name="person" size={36} color="white" />
-                </LinearGradient>
+                {/* Profile photo or user icon */}
+                {user?.profilePhoto ? (
+                  <Image
+                    source={{ uri: user.profilePhoto.startsWith('http') ? user.profilePhoto : `${API_BASE_URL}${user.profilePhoto}` }}
+                    style={styles.userAvatar}
+                  />
+                ) : (
+                  <LinearGradient
+                    colors={['#111827', '#1f2937']}
+                    style={styles.userAvatar}
+                  >
+                    <Ionicons name="person" size={48} color="white" />
+                  </LinearGradient>
+                )}
+                {/* Red Edit Floating Action Button on Bottom Right */}
                 <View style={styles.editIconContainer}>
-                  <Ionicons name="create-outline" size={16} color="white" />
+                  <Ionicons name="create-outline" size={14} color="white" />
                 </View>
               </View>
+              
               <Text style={styles.userName}>
-                {user?.name || 'Guest User'}
+                {user?.name || 'Geric'} {/* Use real name from Auth state or fallback to image name */}
               </Text>
-              <View style={styles.userInfoBadge}>
-                <Text style={styles.userId}>
-                  {user?.idNumber || 'TUPT-00-0000'}
-                </Text>
-              </View>
-              {user?.age && (
-                <Text style={styles.userAge}>
-                  Age: {user.age}
-                </Text>
-              )}
-              <View style={styles.viewProfileHint}>
-                <Text style={styles.viewProfileText}>Tap to view profile</Text>
-              </View>
-            </TouchableOpacity>
-          </LinearGradient>
 
-          {/* Scrollable Content */}
+              <View style={styles.userIdBadge}>
+                <Text style={styles.userIdText}>
+                  {user?.idNumber || 'TUPT-11-1111'}
+                </Text>
+              </View>
+              
+              <Text style={styles.portalSubtitle}>
+                UNIVERSITY ARCHIVE PORTAL
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* List of Navigation Actions */}
           <ScrollView 
             style={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContentContainer}
           >
-            {/* Menu Items */}
-            <View style={styles.menuItems}>
+            <View style={styles.menuItemsBlock}>
               {menuItems.map((item, index) => (
-                <TouchableOpacity
+                <Animated.View 
                   key={index}
-                  style={styles.menuItem}
-                  onPress={() => handleMenuItemPress(item.screen)}
-                  activeOpacity={0.7}
+                  style={{
+                    opacity: itemAnims[index],
+                    transform: [{
+                      translateX: itemAnims[index].interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-20, 0]
+                      })
+                    }]
+                  }}
                 >
-                  <View style={styles.menuItemContent}>
-                    <LinearGradient
-                      colors={item.gradient}
-                      style={styles.menuIconContainer}
-                    >
-                      <Ionicons 
-                        name={item.icon} 
-                        size={20} 
-                        color="white" 
-                      />
-                    </LinearGradient>
-                    <Text style={styles.menuItemText}>{item.label}</Text>
-                  </View>
-                  <Ionicons 
-                    name="chevron-forward" 
-                    size={18} 
-                    color="#9ca3af" 
-                  />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.menuItemBtn}
+                    onPress={() => handleMenuItemPress(item.screen)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.menuItemLeft}>
+                      <View style={styles.menuIconContainer}>
+                        <Ionicons name={item.icon} size={22} color="#fca5a5" />
+                      </View>
+                      <Text style={styles.menuItemLabel}>{item.label}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#f87171" style={styles.chevronIcon} />
+                  </TouchableOpacity>
+                </Animated.View>
               ))}
             </View>
           </ScrollView>
 
-          {/* Bottom Section */}
+          {/* Bottom Logout Section */}
           <View style={styles.bottomSection}>
-            {/* App Version */}
-            <View style={styles.versionContainer}>
-              <Ionicons name="information-circle-outline" size={16} color="#9ca3af" />
-              <Text style={styles.versionText}>Version 1.0.0</Text>
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={user ? handleLogout : () => { onClose(); navigation.navigate('Login'); }}
+              activeOpacity={0.8}
+            >
+               <Ionicons name={user ? "log-out-outline" : "log-in-outline"} size={22} color="white" style={{ marginRight: 10 }} />
+               <Text style={styles.logoutText}>{user ? "LOGOUT" : "LOGIN"}</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.portalBrandingFooter}>
+                 {/* subtle bottom divider */}
+                 <View style={styles.footerDivider} />
+                 <Text style={styles.portalFooterText}>TUPT THESIS ARCHIVE</Text>
             </View>
-
-            {/* Logout Button - Only show if user is logged in */}
-            {user && (
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={handleLogout}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#c7242c', '#991b1b']}
-                  style={styles.actionGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Ionicons name="log-out-outline" size={20} color="white" />
-                  <Text style={styles.actionText}>Logout</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {/* Login Button - Show if user is not logged in */}
-            {!user && (
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={() => {
-                  onClose();
-                  navigation.navigate('Login');
-                }}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#c7242c', '#991b1b']}
-                  style={styles.actionGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Ionicons name="log-in-outline" size={20} color="white" />
-                  <Text style={styles.actionText}>Login</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
           </View>
+
         </LinearGradient>
       </Animated.View>
     </>
   );
 };
 
-// ... keep your existing styles the same ...
 const styles = StyleSheet.create({
   overlay: {
     position: 'absolute',
@@ -275,98 +312,86 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     zIndex: 999,
   },
   menuContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: width * 0.85,
+    width: width * 0.82, // Standard sidebar width
     height: '100%',
     zIndex: 1000,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 2, height: 0 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 16,
-      },
-    }),
   },
   menuGradient: {
     flex: 1,
   },
   headerSection: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 30,
-    borderBottomRightRadius: 30,
+    paddingTop: Platform.OS === 'ios' ? 70 : 60,
+    paddingBottom: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   userSection: {
     alignItems: 'center',
-    paddingHorizontal: 20,
+    width: '100%',
   },
   userAvatarContainer: {
     marginBottom: 16,
     position: 'relative',
+    padding: 2,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 24, // Slight squircle shape per screenshot
   },
   userAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: '#1f2937', 
   },
   editIconContainer: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#c7242c',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: -5,
+    right: -5,
+    backgroundColor: '#b91c1c', // deep red
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#7f0000', // matches bg to blend
   },
   userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 10,
-    textAlign: 'center',
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#fff',
+    marginBottom: 12,
   },
-  userInfoBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  userIdBadge: {
+    backgroundColor: 'rgba(127, 29, 29, 0.6)', // transparent dark red inner pill
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  userId: {
-    fontSize: 13,
-    color: 'white',
-    fontWeight: '600',
-  },
-  userAge: {
+  userIdText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontStyle: 'italic',
-    marginBottom: 8,
+    color: '#fca5a5',
+    fontWeight: 'bold',
+    letterSpacing: 2,
   },
-  viewProfileHint: {
-    marginTop: 4,
-  },
-  viewProfileText: {
-    fontSize: 11,
+  portalSubtitle: {
+    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.7)',
-    fontStyle: 'italic',
+    fontWeight: '900',
+    letterSpacing: 2,
   },
   scrollContent: {
     flex: 1,
@@ -374,97 +399,86 @@ const styles = StyleSheet.create({
   scrollContentContainer: {
     flexGrow: 1,
   },
-  menuItems: {
-    paddingTop: 20,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+  menuItemsBlock: {
+    paddingTop: 10,
   },
-  menuItem: {
+  menuItemBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: 'white',
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
-  menuItemContent: {
+  menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
+    backgroundColor: 'rgba(127, 29, 29, 0.4)', // Darker translucent red box
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  menuItemText: {
-    fontSize: 16,
-    color: '#1f2937',
-    fontWeight: '600',
-    flex: 1,
+  menuItemLabel: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  chevronIcon: {
+    opacity: 0.5,
   },
   bottomSection: {
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    paddingTop: 10,
-  },
-  versionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    marginBottom: 12,
-    gap: 6,
-  },
-  versionText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '500',
-  },
-  actionButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#c7242c',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  actionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
     paddingHorizontal: 24,
-    gap: 10,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
   },
-  actionText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(127, 29, 29, 0.4)',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    width: '100%',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(153, 27, 27, 0.5)',
+    marginBottom: 24,
   },
+  logoutText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  portalBrandingFooter: {
+      alignItems: 'center',
+      width: '100%'
+  },
+  footerDivider: {
+      width: 40,
+      height: 2,
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      marginBottom: 16,
+      borderRadius: 1
+  },
+  portalFooterText: {
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.3)',
+      fontWeight: '900',
+      letterSpacing: 4,
+  }
 });
 
 export default HamburgerMenu;

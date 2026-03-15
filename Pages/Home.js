@@ -1,4 +1,3 @@
-// Pages/Home.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,610 +8,852 @@ import {
   Dimensions,
   Animated,
   Platform,
+  Alert,
+  ActivityIndicator,
+  Linking
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomHeader from './Navigation/CustomHeader';
 import HamburgerMenu from './Navigation/HamburgerMenu';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import API_BASE_URL from '../api';
 
 const { width, height } = Dimensions.get('window');
 
 const HomeScreen = () => {
-  const navigation = useNavigation();
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [user, setUser] = useState(null);
-  const [filteredFeatures, setFilteredFeatures] = useState([]);
-  const fadeAnim = useState(new Animated.Value(0))[0];
+    const navigation = useNavigation();
+    const isFocused = useIsFocused();
+    const [isMenuVisible, setIsMenuVisible] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [user, setUser] = useState(null);
+    const fadeAnim = useState(new Animated.Value(0))[0];
 
-  // Load user data
-  useEffect(() => {
-    loadUserData();
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
-  }, []);
+    // Data States
+    const [thesisCount, setThesisCount] = useState(0);
+    const [recentTheses, setRecentTheses] = useState([]);
+    const [deptCounts, setDeptCounts] = useState([]);
+    const [aiHistory, setAiHistory] = useState([]);
+    const [loadingAi, setLoadingAi] = useState(false);
 
-  // Filter features based on search query
-  useEffect(() => {
-    if (searchQuery) {
-      const filtered = features.filter(feature =>
-        feature.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        feature.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredFeatures(filtered);
-    } else {
-      setFilteredFeatures(features);
-    }
-  }, [searchQuery]);
+    // Selected AI Modal
+    const [selectedAiItem, setSelectedAiItem] = useState(null);
 
-  const loadUserData = async () => {
-    try {
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        setUser(JSON.parse(userData));
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  };
+    // Load Data whenever screen comes into focus
+    useEffect(() => {
+        if (isFocused) {
+            loadDashboardData();
+        }
+    }, [isFocused]);
 
-  const features = [
-    {
-      icon: 'analytics',
-      title: 'Thesis Analysis',
-      description: 'Advanced analysis tools for your research papers',
-      gradient: ['#6366f1', '#4f46e5'],
-    },
-    {
-      icon: 'document-text',
-      title: 'Document Management',
-      description: 'Organize and manage all your thesis documents',
-      gradient: ['#ec4899', '#db2777'],
-    },
-    {
-      icon: 'search',
-      title: 'Smart Search',
-      description: 'Find relevant research papers quickly',
-      gradient: ['#8b5cf6', '#7c3aed'],
-    },
-    {
-      icon: 'stats-chart',
-      title: 'Progress Tracking',
-      description: 'Monitor your research progress and milestones',
-      gradient: ['#14b8a6', '#0d9488'],
-    },
-    {
-      icon: 'library',
-      title: 'Thesis Library',
-      description: 'Access comprehensive thesis database',
-      gradient: ['#f59e0b', '#d97706'],
-    },
-    {
-      icon: 'trending-up',
-      title: 'Research Trends',
-      description: 'Discover latest research trends and patterns',
-      gradient: ['#10b981', '#059669'],
-    }
-  ];
+    useEffect(() => {
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+        }).start();
+    }, []);
 
-  const stats = [
-    { label: 'Active Projects', value: '12', icon: 'folder-open' },
-    { label: 'Completed', value: '48', icon: 'checkmark-circle' },
-    { label: 'In Progress', value: '8', icon: 'timer' },
-  ];
+    const loadDashboardData = async () => {
+        try {
+            const userDataStr = await AsyncStorage.getItem('userData');
+            const token = await AsyncStorage.getItem('userToken');
+            
+            if (userDataStr) {
+                setUser(JSON.parse(userDataStr));
+            }
 
-  const handleSearch = () => {
-    if (searchQuery) {
-      console.log('Searching for:', searchQuery);
-    }
-  };
+            // Load Recent offline
+            const recentStr = await AsyncStorage.getItem('recent_theses');
+            if (recentStr) {
+                setRecentTheses(JSON.parse(recentStr));
+            } else {
+                setRecentTheses([]);
+            }
 
-  const handleFeaturePress = (feature) => {
-    console.log('Feature pressed:', feature.title);
-  };
+            if (token) {
+                // Fetch Thesis Count
+                fetch(`${API_BASE_URL}/thesis/count`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(data => { if (data.count !== undefined) setThesisCount(data.count) })
+                .catch(err => console.log('Error fetching thesis count', err));
 
-  return (
-    <View style={styles.container}>
-      <CustomHeader
-        onMenuPress={() => setIsMenuVisible(true)}
-        onSearch={handleSearch}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-      
-      <LinearGradient
-        colors={['#fef2f2', '#fee2e2', '#fecaca']}
-        style={styles.gradientBackground}
-      >
-        <ScrollView 
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
+                // Fetch Department Counts
+                fetch(`${API_BASE_URL}/thesis/department-counts`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(data => { if (Array.isArray(data)) setDeptCounts(data) })
+                .catch(err => console.log('Error fetching dept counts', err));
+
+                // Fetch AI History
+                setLoadingAi(true);
+                fetch(`${API_BASE_URL}/user/ai-history`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.data) {
+                        setAiHistory(data.data);
+                    }
+                })
+                .catch(err => console.log('Error fetching AI history', err))
+                .finally(() => setLoadingAi(false));
+            }
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+        }
+    };
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 17) return 'Good Afternoon';
+        return 'Good Evening';
+    };
+
+    const handleSearch = () => {
+        if (searchQuery.trim()) {
+            navigation.navigate('SmartSearch', { initialQuery: searchQuery.trim() });
+            setSearchQuery('');
+        }
+    };
+
+    const clearRecentViews = async () => {
+        Alert.alert(
+            "Clear Recent Views",
+            "Are you sure you want to clear your local viewing history?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Clear All", onPress: async () => {
+                        await AsyncStorage.removeItem('recent_theses');
+                        setRecentTheses([]);
+                    }, style: 'destructive'
+                }
+            ]
+        );
+    };
+
+    const confirmDeleteAiHistory = async (id) => {
+        Alert.alert(
+            "Delete Recommendation?",
+            "Are you sure you want to permanently delete this AI title recommendation?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete", style: "destructive", onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('userToken');
+                            const res = await fetch(`${API_BASE_URL}/user/ai-history/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                setAiHistory(prev => prev.filter(item => item._id !== id));
+                            } else {
+                                Alert.alert("Error", "Failed to delete history item");
+                            }
+                        } catch (err) {
+                            Alert.alert("Error", "An network error occurred");
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const confirmClearAllAiHistory = async () => {
+        Alert.alert(
+            "Clear All History?",
+            "Are you sure you want to permanently clear all your AI title recommendations?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Clear All", style: "destructive", onPress: async () => {
+                        try {
+                            const token = await AsyncStorage.getItem('userToken');
+                            const res = await fetch(`${API_BASE_URL}/user/ai-history`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                setAiHistory([]);
+                            } else {
+                                Alert.alert("Error", "Failed to clear history");
+                            }
+                        } catch (err) {
+                            Alert.alert("Error", "A network error occurred");
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    // Helper to extract bold parts
+    const renderRecommendationText = (text) => {
+        const lines = text.split('\n');
+        return lines.map((line, lineIdx) => {
+           const processedLine = line.replace(/^\s*\*\s/, '• ').replace(/^\s*-\s/, '• ');
+           const parts = processedLine.split(/(\*\*.*?\*\*)/g);
+           
+           return (
+               <Text key={lineIdx} style={styles.modalBodyText}>
+                   {parts.map((part, i) => {
+                       if (part.startsWith('**') && part.endsWith('**')) {
+                          return <Text key={i} style={styles.modalBoldText}>{part.slice(2, -2)}</Text>;
+                       }
+                       return <Text key={i}>{part}</Text>;
+                   })}
+                   {'\n'}
+               </Text>
+           );
+        });
+    };
+
+    return (
+        <LinearGradient
+            colors={['#7f0000', '#240000']}
+            style={styles.container}
         >
-          <Animated.View style={{ opacity: fadeAnim }}>
-            {/* Hero Section */}
-            <LinearGradient
-              colors={['#c7242c', '#991b1b']}
-              style={styles.heroSection}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+            <CustomHeader
+                onMenuPress={() => setIsMenuVisible(true)}
+                onSearch={handleSearch}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+            />
+            {/* Hamburger Menu */}
+            <HamburgerMenu isVisible={isMenuVisible} onClose={() => setIsMenuVisible(false)} navigation={navigation} />
+
+            <ScrollView
+                style={styles.scrollView}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                contentContainerStyle={{ flexGrow: 1, paddingBottom: 60 }}
             >
-              <View style={styles.heroContent}>
-                <View style={styles.greetingContainer}>
-                  <Text style={styles.greetingText}>Hello,</Text>
-                  <Text style={styles.heroName}>{user?.name || 'Researcher'}</Text>
-                  <Text style={styles.heroSubtitle}>
-                    {searchQuery ? `Searching for "${searchQuery}"` : 'What would you like to explore today?'}
-                  </Text>
-                </View>
-                
-                {/* Stats Cards - Only show when not searching */}
-                {!searchQuery && (
-                  <View style={styles.statsContainer}>
-                    {stats.map((stat, index) => (
-                      <View key={index} style={styles.statCard}>
-                        <Ionicons name={stat.icon} size={20} color="#c7242c" />
-                        <Text style={styles.statValue}>{stat.value}</Text>
-                        <Text style={styles.statLabel}>{stat.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </LinearGradient>
+                <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
 
-            {/* Search Results Count */}
-            {searchQuery && (
-              <View style={styles.searchResultsSection}>
-                <Ionicons name="filter" size={16} color="#991b1b" />
-                <Text style={styles.searchResultsText}>
-                  {filteredFeatures.length} result{filteredFeatures.length !== 1 ? 's' : ''} found
-                </Text>
-              </View>
+                    <View style={styles.mainContent}>
+                        
+                        {/* Welcome Header */}
+                        <View style={styles.welcomeSection}>
+                            <Text style={styles.greetingHeader}>{getGreeting()}</Text>
+                            <Text style={styles.welcomeTitle}>Welcome back, {user?.name || 'Researcher'}</Text>
+                            <Text style={styles.welcomeSub}>Manage your research and explore the thesis collection.</Text>
+                        </View>
+
+                        {/* Top Stats ScrollView */}
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.statsScrollContainer}
+                            style={styles.statsScrollArea}
+                        >
+                            {/* Archive Size */}
+                            <View style={styles.statCard}>
+                                <View style={styles.statInfo}>
+                                    <Text style={styles.statLabelTop}>ARCHIVE SIZE</Text>
+                                    <Text style={styles.statValue}>{thesisCount.toLocaleString()}</Text>
+                                    <Text style={[styles.statLabelBottom, { color: '#ef4444' }]}>THESES INDEXED</Text>
+                                </View>
+                                <View style={[styles.statIconBox, { backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
+                                    <Ionicons name="search" size={24} color="#f87171" />
+                                </View>
+                            </View>
+
+                            {/* AI History Count */}
+                            <View style={styles.statCard}>
+                                <View style={styles.statInfo}>
+                                    <Text style={styles.statLabelTop}>AI HISTORY</Text>
+                                    <Text style={styles.statValue}>{aiHistory.length}</Text>
+                                    <Text style={[styles.statLabelBottom, { color: '#a855f7' }]}>RECOMMENDATIONS</Text>
+                                </View>
+                                <View style={[styles.statIconBox, { backgroundColor: '#faf5ff', borderColor: '#f3e8ff' }]}>
+                                    <Ionicons name="hardware-chip" size={24} color="#c084fc" />
+                                </View>
+                            </View>
+
+                            {/* Recent Activity Count */}
+                            <View style={styles.statCard}>
+                                <View style={styles.statInfo}>
+                                    <Text style={styles.statLabelTop}>RECENTLY VIEWED</Text>
+                                    <Text style={styles.statValue}>{recentTheses.length}</Text>
+                                    <Text style={[styles.statLabelBottom, { color: '#f97316' }]}>ACTIVE ITEMS</Text>
+                                </View>
+                                <View style={[styles.statIconBox, { backgroundColor: '#fff7ed', borderColor: '#ffedd5' }]}>
+                                    <Ionicons name="time" size={24} color="#fb923c" />
+                                </View>
+                            </View>
+                        </ScrollView>
+
+                        {/* AI Recommendation Log Area */}
+                        <View style={styles.sectionContainer}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <View style={styles.titleDividerRed} />
+                                    <Text style={styles.sectionTitleText}>AI RECOMMENDATION LOG</Text>
+                                </View>
+                                
+                                <View style={styles.sectionHeaderActions}>
+                                   {aiHistory.length > 0 && (
+                                       <TouchableOpacity style={styles.clearHistoryBtn} onPress={confirmClearAllAiHistory}>
+                                           <Text style={styles.clearHistoryText}>CLEAR HISTORY</Text>
+                                       </TouchableOpacity>
+                                   )}
+                                   <View style={styles.aiBadge}>
+                                       <Ionicons name="hardware-chip" size={12} color="#93c5fd" />
+                                       <Text style={styles.aiBadgeText}>AI POWERED</Text>
+                                   </View>
+                                </View>
+                            </View>
+
+                            <View style={styles.cardBlock}>
+                                {loadingAi ? (
+                                    <View style={styles.emptyState}>
+                                        <ActivityIndicator size="small" color="#9ca3af" />
+                                        <Text style={styles.emptyText}>Loading AI history...</Text>
+                                    </View>
+                                ) : aiHistory.length > 0 ? (
+                                    <View>
+                                        {aiHistory.slice(0, 5).map((item, index) => (
+                                            <TouchableOpacity 
+                                                key={item._id} 
+                                                style={[styles.historyItemRow, index !== aiHistory.slice(0, 5).length -1 && styles.borderBottom]}
+                                                onPress={() => setSelectedAiItem(item)}
+                                            >
+                                                <View style={styles.historyItemBox}>
+                                                    <View style={styles.historyIconBox}>
+                                                        <Ionicons name="hardware-chip" size={16} color="#9ca3af" />
+                                                    </View>
+                                                    <View style={styles.historyTextFlex}>
+                                                        <Text style={styles.historyItemTitle} numberOfLines={1}>
+                                                            {item.prompt}
+                                                        </Text>
+                                                        <Text style={styles.historyItemDate}>
+                                                            {new Date(item.createdAt).toLocaleDateString()}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <TouchableOpacity 
+                                                    style={styles.deleteIconBtn}
+                                                    onPress={() => confirmDeleteAiHistory(item._id)}
+                                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                                >
+                                                    <Ionicons name="trash" size={16} color="#d1d5db" />
+                                                </TouchableOpacity>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <View style={styles.emptyState}>
+                                        <View style={styles.emptyIconCircle}>
+                                            <Ionicons name="hardware-chip" size={32} color="#bfdbfe" />
+                                        </View>
+                                        <Text style={styles.emptyText}>No AI title recommendations found.</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Secondary Grid (Recent + Stats) */}
+                        <View style={styles.secondaryGrid}>
+                             
+                             {/* Recent Views */}
+                             <View style={styles.gridColumn}>
+                                  <View style={styles.sectionHeader}>
+                                       <View style={styles.sectionTitleRow}>
+                                            <View style={[styles.titleDividerRed, { backgroundColor: '#f97316' }]} />
+                                            <Text style={styles.sectionTitleText}>RECENT VIEWS</Text>
+                                       </View>
+                                       {recentTheses.length > 0 && (
+                                           <TouchableOpacity style={styles.clearHistoryBtnOrange} onPress={clearRecentViews}>
+                                               <Text style={styles.clearHistoryTextOrange}>CLEAR ALL</Text>
+                                           </TouchableOpacity>
+                                       )}
+                                  </View>
+
+                                  <View style={styles.cardBlock}>
+                                      {recentTheses.length > 0 ? (
+                                          recentTheses.slice(0, 3).map((thesis, idx) => (
+                                              <TouchableOpacity 
+                                                   key={thesis.id || idx}
+                                                   style={styles.recentItemView}
+                                                   onPress={() => navigation.navigate('ThesisDetail', { id: thesis.id })}
+                                              >
+                                                   <Text style={styles.recentItemYear}>{thesis.year || 'No Year'}</Text>
+                                                   <Text style={styles.recentItemTitle} numberOfLines={2}>{thesis.title}</Text>
+                                              </TouchableOpacity>
+                                          ))
+                                      ) : (
+                                          <View style={styles.emptyStateMinimal}>
+                                               <Text style={styles.emptyTextSub}>No history found</Text>
+                                          </View>
+                                      )}
+                                  </View>
+                             </View>
+
+                             {/* Archive Stats */}
+                             <View style={styles.gridColumn}>
+                                  <View style={styles.sectionHeader}>
+                                       <View style={styles.sectionTitleRow}>
+                                            <View style={[styles.titleDividerRed, { backgroundColor: '#fecaca' }]} />
+                                            <Text style={styles.sectionTitleText}>ARCHIVE STATS</Text>
+                                       </View>
+                                  </View>
+
+                                  <View style={styles.cardBlock}>
+                                       {deptCounts.slice(0, 5).map((dept, idx) => (
+                                           <TouchableOpacity 
+                                               key={dept.category + idx}
+                                               style={[styles.deptRow, idx !== deptCounts.slice(0, 5).length - 1 && styles.borderBottom]}
+                                               onPress={() => {
+                                                    // Route to smart search with category filter applied
+                                                    navigation.navigate('SmartSearch', { selectedDepartment: dept.category });
+                                               }}
+                                           >
+                                                <Text style={styles.deptName}>{dept.category}</Text>
+                                                <Text style={styles.deptCount}>{dept.count}</Text>
+                                           </TouchableOpacity>
+                                       ))}
+                                  </View>
+                             </View>
+
+                        </View>
+
+                    </View>
+                </Animated.View>
+            </ScrollView>
+
+            {/* Selected AI Modal */}
+            {selectedAiItem && (
+                <View style={[StyleSheet.absoluteFill, styles.modalOverlay]}>
+                     <View style={styles.modalContent}>
+                          <TouchableOpacity 
+                              style={styles.modalCloseBtn}
+                              onPress={() => setSelectedAiItem(null)}
+                          >
+                              <Ionicons name="close" size={24} color="#9ca3af" />
+                          </TouchableOpacity>
+
+                          <View style={styles.modalHeaderRow}>
+                               <View style={styles.modalIconBox}>
+                                   <Ionicons name="hardware-chip" size={32} color="#ef4444" />
+                               </View>
+                               <View style={styles.modalHeaderTextFlex}>
+                                   <Text style={styles.modalTitle}>AI Title Recommendation</Text>
+                                   <Text style={styles.modalSubtitle}>TAILORED TO: "{selectedAiItem.prompt}"</Text>
+                               </View>
+                          </View>
+
+                          <View style={styles.modalScrollBodyArea}>
+                              <ScrollView contentContainerStyle={{ padding: 20 }}>
+                                  {renderRecommendationText(selectedAiItem.recommendation)}
+                              </ScrollView>
+                          </View>
+
+                     </View>
+                </View>
             )}
 
-            {/* Features Section */}
-            <View style={styles.featuresSection}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  {searchQuery ? 'Search Results' : 'Quick Actions'}
-                </Text>
-                {!searchQuery && (
-                  <TouchableOpacity>
-                    <Text style={styles.seeAllText}>See All</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              
-              <View style={styles.featuresGrid}>
-                {filteredFeatures.map((feature, index) => (
-                  <TouchableOpacity 
-                    key={index} 
-                    style={styles.featureCard}
-                    onPress={() => handleFeaturePress(feature)}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={feature.gradient}
-                      style={styles.featureGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <View style={styles.featureIconContainer}>
-                        <Ionicons name={feature.icon} size={28} color="white" />
-                      </View>
-                      <Text style={styles.featureTitle}>{feature.title}</Text>
-                      <Text style={styles.featureDescription}>{feature.description}</Text>
-                      <View style={styles.featureArrow}>
-                        <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.7)" />
-                      </View>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* No Results */}
-              {searchQuery && filteredFeatures.length === 0 && (
-                <View style={styles.noResults}>
-                  <View style={styles.noResultsIconContainer}>
-                    <Ionicons name="search-outline" size={60} color="#d1d5db" />
-                  </View>
-                  <Text style={styles.noResultsText}>No results found</Text>
-                  <Text style={styles.noResultsSubtext}>
-                    Try adjusting your search terms or browse all features
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.clearSearchButton}
-                    onPress={() => setSearchQuery('')}
-                  >
-                    <Text style={styles.clearSearchText}>Clear Search</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            {/* Recent Activity - Only show when not searching */}
-            {!searchQuery && (
-              <View style={styles.activitySection}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Recent Activity</Text>
-                  <TouchableOpacity>
-                    <Text style={styles.seeAllText}>View All</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.activityList}>
-                  <TouchableOpacity style={styles.activityItem} activeOpacity={0.7}>
-                    <View style={[styles.activityIcon, { backgroundColor: '#dbeafe' }]}>
-                      <Ionicons name="document-text" size={22} color="#2563eb" />
-                    </View>
-                    <View style={styles.activityContent}>
-                      <Text style={styles.activityTitle}>Thesis Updated</Text>
-                      <Text style={styles.activityDescription}>"AI in Education" document modified</Text>
-                    </View>
-                    <View style={styles.activityTimeContainer}>
-                      <Text style={styles.activityTime}>2h</Text>
-                      <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.activityItem} activeOpacity={0.7}>
-                    <View style={[styles.activityIcon, { backgroundColor: '#d1fae5' }]}>
-                      <Ionicons name="analytics" size={22} color="#059669" />
-                    </View>
-                    <View style={styles.activityContent}>
-                      <Text style={styles.activityTitle}>Analysis Complete</Text>
-                      <Text style={styles.activityDescription}>Research paper analysis finished</Text>
-                    </View>
-                    <View style={styles.activityTimeContainer}>
-                      <Text style={styles.activityTime}>1d</Text>
-                      <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.activityItem} activeOpacity={0.7}>
-                    <View style={[styles.activityIcon, { backgroundColor: '#fef3c7' }]}>
-                      <Ionicons name="library" size={22} color="#d97706" />
-                    </View>
-                    <View style={styles.activityContent}>
-                      <Text style={styles.activityTitle}>Library Updated</Text>
-                      <Text style={styles.activityDescription}>3 new theses added to collection</Text>
-                    </View>
-                    <View style={styles.activityTimeContainer}>
-                      <Text style={styles.activityTime}>2d</Text>
-                      <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* Quick Tips Section - Only show when not searching */}
-            {!searchQuery && (
-              <View style={styles.tipsSection}>
-                <LinearGradient
-                  colors={['#f3f4f6', '#e5e7eb']}
-                  style={styles.tipCard}
-                >
-                  <Ionicons name="bulb" size={24} color="#f59e0b" />
-                  <View style={styles.tipContent}>
-                    <Text style={styles.tipTitle}>Pro Tip</Text>
-                    <Text style={styles.tipText}>
-                      Use Smart Search to find relevant papers based on keywords and citations
-                    </Text>
-                  </View>
-                </LinearGradient>
-              </View>
-            )}
-
-            <View style={{ height: 30 }} />
-          </Animated.View>
-        </ScrollView>
-      </LinearGradient>
-
-      <HamburgerMenu
-        isVisible={isMenuVisible}
-        onClose={() => setIsMenuVisible(false)}
-        navigation={navigation}
-      />
-    </View>
-  );
+        </LinearGradient>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  gradientBackground: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  heroSection: {
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    paddingTop: 25,
-    paddingBottom: 30,
-    paddingHorizontal: 25,
-    marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  heroContent: {
-    gap: 20,
-  },
-  greetingContainer: {
-    marginBottom: 10,
-  },
-  greetingText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  heroName: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 22,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginTop: 8,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  searchResultsSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 25,
-    marginBottom: 15,
-    gap: 8,
-  },
-  searchResultsText: {
-    fontSize: 14,
-    color: '#991b1b',
-    fontWeight: '600',
-  },
-  featuresSection: {
-    marginBottom: 25,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 25,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#c7242c',
-    fontWeight: '600',
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 15,
-    gap: 15,
-  },
-  featureCard: {
-    width: (width - 45) / 2,
-    borderRadius: 20,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  featureGradient: {
-    padding: 20,
-    minHeight: 180,
-    justifyContent: 'space-between',
-  },
-  featureIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  featureTitle: {
-    color: 'white',
-    fontSize: 17,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  featureDescription: {
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  featureArrow: {
-    alignSelf: 'flex-end',
-  },
-  noResults: {
-    alignItems: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 30,
-  },
-  noResultsIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  noResultsText: {
-    fontSize: 20,
-    color: '#374151',
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  noResultsSubtext: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  clearSearchButton: {
-    backgroundColor: '#c7242c',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  clearSearchText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  activitySection: {
-    marginBottom: 25,
-  },
-  activityList: {
-    paddingHorizontal: 25,
-    gap: 12,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  activityIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activityContent: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  activityTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  activityDescription: {
-    fontSize: 13,
-    color: '#6b7280',
-    lineHeight: 18,
-  },
-  activityTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  activityTime: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontWeight: '500',
-  },
-  tipsSection: {
-    paddingHorizontal: 25,
-    marginBottom: 20,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'flex-start',
-    gap: 16,
-  },
-  tipContent: {
-    flex: 1,
-  },
-  tipTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 6,
-  },
-  tipText: {
-    fontSize: 14,
-    color: '#4b5563',
-    lineHeight: 20,
-  },
+    container: {
+        flex: 1,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    mainContent: {
+        flex: 1,
+        paddingTop: 30,
+        zIndex: 1,
+    },
+    welcomeSection: {
+        paddingHorizontal: 24,
+        marginBottom: 32,
+    },
+    greetingHeader: {
+        fontSize: 10,
+        color: '#fecaca',
+        fontWeight: '900',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+    },
+    welcomeTitle: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#fff',
+        letterSpacing: -0.5,
+    },
+    welcomeSub: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.7)',
+        fontWeight: '500',
+        marginTop: 6,
+    },
+
+    // Top Stats Scroller
+    statsScrollArea: {
+        marginBottom: 40,
+    },
+    statsScrollContainer: {
+        paddingHorizontal: 24,
+        gap: 16,
+        paddingVertical: 10,
+    },
+    statCard: {
+        backgroundColor: '#fff',
+        borderRadius: 32,
+        padding: 24,
+        width: width * 0.75, // wide enough to peek the next
+        minHeight: 140,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16 },
+            android: { elevation: 6 }
+        }),
+    },
+    statInfo: {
+        flex: 1,
+    },
+    statLabelTop: {
+        fontSize: 10,
+        color: '#9ca3af',
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        marginBottom: 4,
+    },
+    statValue: {
+        fontSize: 36,
+        fontWeight: '900',
+        color: '#111827',
+        lineHeight: 40,
+    },
+    statLabelBottom: {
+        fontSize: 10,
+        fontWeight: '900',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginTop: 10,
+    },
+    statIconBox: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    // Sections Framework
+    sectionContainer: {
+        paddingHorizontal: 24,
+        marginBottom: 48,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        flexWrap: 'wrap',
+        gap: 10,
+    },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    titleDividerRed: {
+        width: 6,
+        height: 20,
+        backgroundColor: '#fecaca',
+        borderRadius: 4,
+    },
+    sectionTitleText: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: '#fff',
+        letterSpacing: 1.5,
+    },
+    sectionHeaderActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    clearHistoryBtn: {
+        backgroundColor: 'rgba(127, 29, 29, 0.4)',
+        borderWidth: 1,
+        borderColor: '#7f1d1d',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    clearHistoryText: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#fca5a5',
+        letterSpacing: 1.5,
+    },
+    clearHistoryBtnOrange: {
+        backgroundColor: 'rgba(194, 65, 12, 0.4)', 
+        borderWidth: 1,
+        borderColor: '#7c2d12',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    clearHistoryTextOrange: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#fdba74',
+        letterSpacing: 1.5,
+    },
+    aiBadge: {
+        backgroundColor: 'rgba(30, 58, 138, 0.5)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#1e40af',
+    },
+    aiBadgeText: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#93c5fd',
+        letterSpacing: 1.5,
+    },
+    cardBlock: {
+        backgroundColor: '#fff',
+        borderRadius: 32,
+        borderWidth: 1,
+        borderColor: '#f3f4f6',
+        overflow: 'hidden',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
+            android: { elevation: 2 }
+        }),
+    },
+
+    // AI History List Items
+    historyItemRow: {
+        padding: 24,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+    },
+    borderBottom: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+    },
+    historyItemBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        marginRight: 16,
+    },
+    historyIconBox: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: '#f3f4f6',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    historyTextFlex: {
+        flex: 1,
+    },
+    historyItemTitle: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#111827',
+        marginBottom: 4,
+    },
+    historyItemDate: {
+        fontSize: 10,
+        color: '#9ca3af',
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+    },
+    deleteIconBtn: {
+        paddingTop: 4,
+    },
+    emptyState: {
+        padding: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyIconCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#eff6ff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    emptyText: {
+        fontSize: 14,
+        color: '#9ca3af',
+        fontWeight: '500',
+        marginTop: 8,
+    },
+
+    // Secondary Grid Items
+    secondaryGrid: {
+        paddingHorizontal: 24,
+        gap: 40,
+        paddingBottom: 40,
+    },
+    gridColumn: {
+        flex: 1,
+    },
+    recentItemView: {
+        padding: 24,
+    },
+    recentItemYear: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#ef4444',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
+        marginBottom: 8,
+    },
+    recentItemTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#111827',
+        lineHeight: 20,
+    },
+    emptyStateMinimal: {
+        paddingVertical: 32,
+        alignItems: 'center',
+    },
+    emptyTextSub: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#9ca3af',
+    },
+
+    deptRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        paddingVertical: 18,
+    },
+    deptName: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#6b7280',
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+    },
+    deptCount: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#111827',
+    },
+
+    // Modal Overlays
+    modalOverlay: {
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        zIndex: 100,
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        width: '100%',
+        maxHeight: '85%',
+        borderRadius: 32,
+        paddingTop: 32,
+        paddingBottom: 24,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 20 },
+            android: { elevation: 10 }
+        }),
+    },
+    modalCloseBtn: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        width: 36,
+        height: 36,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 10,
+    },
+    modalHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 24,
+        marginBottom: 24,
+    },
+    modalIconBox: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        backgroundColor: '#fef2f2',
+        borderWidth: 1,
+        borderColor: '#fee2e2',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    modalHeaderTextFlex: {
+        flex: 1,
+        paddingRight: 20, // Make room for close btn
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#111827',
+        lineHeight: 26,
+        marginBottom: 4,
+    },
+    modalSubtitle: {
+        fontSize: 10,
+        color: '#6b7280',
+        fontWeight: '900',
+        letterSpacing: 1.5,
+    },
+    modalScrollBodyArea: {
+        flexShrink: 1,
+        marginHorizontal: 24,
+        backgroundColor: '#f9fafb',
+        borderWidth: 1,
+        borderColor: '#f3f4f6',
+        borderRadius: 24,
+    },
+    modalBodyText: {
+        fontSize: 15,
+        color: '#374151',
+        lineHeight: 26,
+    },
+    modalBoldText: {
+        fontWeight: '900',
+        color: '#111827',
+    }
 });
 
 export default HomeScreen;

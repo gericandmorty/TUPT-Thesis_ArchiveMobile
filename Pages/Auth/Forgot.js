@@ -15,13 +15,12 @@ import { useNavigation } from '@react-navigation/native';
 import API_BASE_URL from '../../api';
 import { useToast } from '../../utils/ToastContext';
 
-const RegisterScreen = () => {
+const ForgotScreen = () => {
   const navigation = useNavigation();
   const [formData, setFormData] = useState({
-    fullName: '',
     idNumber: '',
     birthdate: '',
-    password: '',
+    newPassword: '',
     confirmPassword: '',
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -69,7 +68,7 @@ const RegisterScreen = () => {
               setShowDatePicker(false);
           }
           
-          // Use local date to avoid timezone shift from toISOString()
+          // Get local date components to avoid timezone offset issues
           const year = date.getFullYear();
           const month = String(date.getMonth() + 1).padStart(2, '0');
           const day = String(date.getDate()).padStart(2, '0');
@@ -90,10 +89,10 @@ const RegisterScreen = () => {
     return idRegex.test(idNumber);
   };
 
-  const handleRegister = async () => {
-    const { fullName, idNumber, birthdate, password, confirmPassword } = formData;
+  const handleResetPassword = async () => {
+    const { idNumber, birthdate, newPassword, confirmPassword } = formData;
 
-    if (!fullName || !idNumber || !birthdate || !password || !confirmPassword) {
+    if (!idNumber || !birthdate || !newPassword || !confirmPassword) {
       toast.show('Please fill in all fields', 'error');
       return;
     }
@@ -103,12 +102,12 @@ const RegisterScreen = () => {
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (newPassword !== confirmPassword) {
       toast.show('Passwords do not match', 'error');
       return;
     }
 
-    if (password.length < 6) {
+    if (newPassword.length < 6) {
       toast.show('Password must be at least 6 characters long', 'error');
       return;
     }
@@ -116,31 +115,30 @@ const RegisterScreen = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: fullName,
           idNumber: idNumber,
           birthdate: birthdate,
-          password: password
+          newPassword: newPassword
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.show(data.message || 'Account created successfully!', 'success');
+        toast.show(data.message || 'Password reset successful!', 'success');
         setTimeout(() => {
           navigation.navigate('Login');
         }, 1500);
       } else {
-        toast.show(data.message || 'Registration failed', 'error');
+        toast.show(data.message || 'Reset failed. Please check your details.', 'error');
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Reset error:', error);
       toast.show('Cannot connect to server. Please try again.', 'error');
     } finally {
       setIsLoading(false);
@@ -149,10 +147,9 @@ const RegisterScreen = () => {
 
   const handleClear = () => {
     setFormData({
-      fullName: '',
       idNumber: '',
       birthdate: '',
-      password: '',
+      newPassword: '',
       confirmPassword: '',
     });
   };
@@ -174,24 +171,12 @@ const RegisterScreen = () => {
           <View style={styles.card}>
               
              {/* Header text + Line divider */}
-             <Text style={styles.headerTitle}>CREATE ACCOUNT</Text>
+             <Text style={styles.headerTitle}>RESET PASSWORD</Text>
              <View style={styles.divider} />
 
              {/* Form Group */}
              <View style={styles.formGroup}>
                 
-                {/* Full Name */}
-                <View style={styles.inputContainer}>
-                   <Text style={styles.label}>Name:</Text>
-                   <TextInput
-                      style={styles.input}
-                      placeholder="Full Name"
-                      placeholderTextColor="#9ca3af"
-                      value={formData.fullName}
-                      onChangeText={(v) => handleInputChange('fullName', v)}
-                   />
-                </View>
-
                 {/* ID Number */}
                 <View style={styles.inputContainer}>
                    <Text style={styles.label}>ID Number:</Text>
@@ -211,7 +196,7 @@ const RegisterScreen = () => {
                 <View style={styles.inputContainer}>
                    <Text style={styles.label}>Birthdate:</Text>
                    <TouchableOpacity onPress={showDatepicker} style={[styles.input, { justifyContent: 'center' }]} activeOpacity={0.7}>
-                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: formData.birthdate ? '#111827' : '#9ca3af' }}>
+                      <Text style={{ fontSize: 15, fontWeight: 'bold', color: formData.birthdate ? '#111827' : '#9ca3af' }}>
                           {formData.birthdate || 'YYYY-MM-DD'}
                       </Text>
                    </TouchableOpacity>
@@ -226,16 +211,16 @@ const RegisterScreen = () => {
                    )}
                 </View>
 
-                {/* Password Grid matching Web sm:grid-cols-2 */}
+                {/* Password Grid */}
                 <View style={styles.passwordGrid}>
                     <View style={styles.flexHalf}>
-                        <Text style={styles.label}>Password:</Text>
+                        <Text style={styles.label}>New Password:</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="••••••••"
                             placeholderTextColor="#9ca3af"
-                            value={formData.password}
-                            onChangeText={(v) => handleInputChange('password', v)}
+                            value={formData.newPassword}
+                            onChangeText={(v) => handleInputChange('newPassword', v)}
                             secureTextEntry={true}
                         />
                     </View>
@@ -264,14 +249,14 @@ const RegisterScreen = () => {
 
                     <TouchableOpacity 
                         style={[styles.submitBtn, isLoading && styles.disabledBtn]}
-                        onPress={handleRegister}
+                        onPress={handleResetPassword}
                         disabled={isLoading}
                         activeOpacity={0.8}
                     >
                         {isLoading ? (
                            <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                           <Text style={styles.submitBtnText}>Register</Text>
+                           <Text style={styles.submitBtnText}>Reset</Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -281,9 +266,9 @@ const RegisterScreen = () => {
              {/* Footer Links */}
              <View style={styles.footer}>
                  <View style={styles.footerTextRow}>
-                     <Text style={styles.footerTextNormal}>Already have an account? </Text>
+                     <Text style={styles.footerTextNormal}>Remembered your password? </Text>
                      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                         <Text style={styles.footerLinkBold}>Sign in here</Text>
+                         <Text style={styles.footerLinkBold}>Back to Login</Text>
                      </TouchableOpacity>
                  </View>
              </View>
@@ -435,4 +420,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default RegisterScreen;
+export default ForgotScreen;

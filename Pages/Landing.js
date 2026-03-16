@@ -8,12 +8,13 @@ import {
   Dimensions,
   ImageBackground,
   Platform,
-  SafeAreaView
+  SafeAreaView,
+  Image,
+  Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Animated } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -111,55 +112,61 @@ const LandingScreen = () => {
             colors={['rgba(15, 23, 42, 0.9)', 'rgba(67, 0, 0, 0.65)', 'rgba(23, 0, 0, 1)']}
             style={styles.heroGradient}
           >
-            <SafeAreaView style={styles.heroContent}>
-              <View style={styles.heroTextContainer}>
-                <Animated.Text style={[
-                    styles.heroTitle,
-                    { opacity: titleAnim, transform: [{ translateY: translateY(titleAnim) }] }
-                ]}>
-                  THE DIGITAL ARCHIVE OF TUP EXCELLENCE
-                </Animated.Text>
-                
-                <Animated.Text style={[
-                    styles.heroSubtitle,
-                    { opacity: subtitleAnim, transform: [{ translateY: translateY(subtitleAnim) }] }
-                ]}>
-                  A centralized repository for future-ready engineers. Store, search, and verify your research with institutional precision.
-                </Animated.Text>
-                
-                {/* Hero Actions */}
-                <View style={styles.heroActions}>
-                  <Animated.View style={{ 
-                      width: '100%', 
-                      alignItems: 'center',
-                      opacity: primaryBtnAnim, 
-                      transform: [{ scale: primaryBtnAnim }] 
-                  }}>
-                    <TouchableOpacity 
-                        style={styles.btnHeroPrimary}
-                        onPress={() => navigation.navigate('Register')}
-                        activeOpacity={0.9}
-                    >
-                        <Text style={styles.btnHeroPrimaryText}>START YOUR JOURNEY</Text>
-                        <Ionicons name="arrow-forward" size={18} color="#7f0000" />
-                    </TouchableOpacity>
-                  </Animated.View>
-
-                  <Animated.View style={[
-                      styles.heroSecondaryActions,
-                      { opacity: secondaryActionsAnim, transform: [{ translateY: translateY(secondaryActionsAnim) }] }
-                  ]}>
-                     <TouchableOpacity 
-                        style={styles.glassBtn}
-                        onPress={() => navigation.navigate('Login')}
-                        activeOpacity={0.7}
-                     >
-                        <Ionicons name="person-outline" size={16} color="#fff" style={{marginRight: 6}}/>
-                        <Text style={styles.glassBtnText}>SIGN IN</Text>
-                     </TouchableOpacity>
-                  </Animated.View>
+            <SafeAreaView style={styles.heroSafeArea}>
+              {/* Header Navigation */}
+              <Animated.View style={[styles.headerNav, { opacity: secondaryActionsAnim, transform: [{ translateY: translateY(secondaryActionsAnim) }] }]}>
+                <View style={styles.headerLogoContainer}>
+                  <View style={styles.headerLogoCircle}>
+                    <Image source={require('../assets/tup-logo.png')} style={styles.headerLogo} resizeMode="contain" />
+                  </View>
+                  <Text style={styles.headerBrand}>TUPT</Text>
                 </View>
 
+                <View style={styles.headerAuthContainer}>
+                  <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.headerSignInBtn}>
+                    <Text style={styles.headerSignInText}>SIGN IN</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => navigation.navigate('Register')} style={styles.headerRegisterBtn}>
+                    <Text style={styles.headerRegisterText}>REGISTER</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+
+              <View style={styles.heroContent}>
+                <View style={styles.heroTextContainer}>
+                  <Animated.Text style={[
+                      styles.heroTitle,
+                      { opacity: titleAnim, transform: [{ translateY: translateY(titleAnim) }] }
+                  ]}>
+                    THE DIGITAL ARCHIVE OF TUP EXCELLENCE
+                  </Animated.Text>
+                  
+                  <Animated.Text style={[
+                      styles.heroSubtitle,
+                      { opacity: subtitleAnim, transform: [{ translateY: translateY(subtitleAnim) }] }
+                  ]}>
+                    A centralized repository for future-ready engineers. Store, search, and verify your research with institutional precision.
+                  </Animated.Text>
+                  
+                  {/* Hero Actions */}
+                  <View style={styles.heroActions}>
+                    <Animated.View style={{ 
+                        width: '100%', 
+                        alignItems: 'center',
+                        opacity: primaryBtnAnim, 
+                        transform: [{ scale: primaryBtnAnim }] 
+                    }}>
+                      <TouchableOpacity 
+                          style={styles.btnHeroPrimary}
+                          onPress={() => navigation.navigate('Register')}
+                          activeOpacity={0.9}
+                      >
+                          <Text style={styles.btnHeroPrimaryText}>START YOUR JOURNEY</Text>
+                          <Ionicons name="arrow-forward" size={18} color="#7f0000" />
+                      </TouchableOpacity>
+                    </Animated.View>
+                  </View>
+                </View>
               </View>
             </SafeAreaView>
           </LinearGradient>
@@ -300,12 +307,87 @@ const styles = StyleSheet.create({
   },
   heroGradient: {
       flex: 1,
+  },
+  heroSafeArea: {
+      flex: 1,
+  },
+  headerNav: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: Platform.OS === 'android' ? 40 : 10,
+      paddingBottom: 10,
+      width: '100%',
+  },
+  headerLogoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+  },
+  headerLogoCircle: {
+      width: 36,
+      height: 36,
+      backgroundColor: '#fff',
+      borderRadius: 18,
       justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
+  },
+  headerLogo: {
+      width: 24,
+      height: 24,
+  },
+  headerBrand: {
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '900',
+      letterSpacing: 1,
+  },
+  headerAuthContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+  },
+  headerSignInBtn: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+  },
+  headerSignInText: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: 'bold',
+      letterSpacing: 1,
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+  },
+  headerRegisterBtn: {
+      backgroundColor: '#8b0000',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 3,
+  },
+  headerRegisterText: {
+      color: '#fff',
+      fontSize: 11,
+      fontWeight: '900',
+      letterSpacing: 1,
   },
   heroContent: {
       flex: 1,
       justifyContent: 'center',
       paddingHorizontal: 24,
+      paddingBottom: 60,
   },
   heroTextContainer: {
       alignItems: 'center',

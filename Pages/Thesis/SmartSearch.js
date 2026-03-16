@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ const SmartSearchScreen = () => {
   // AI Feature States
   const [aiRecommendation, setAiRecommendation] = useState(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {

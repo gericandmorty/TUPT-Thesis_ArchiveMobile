@@ -48,10 +48,48 @@ npm install
 ```
 
 ### 3. Configure API Endpoint
-Open `api.js` and update the `API_BASE_URL` to match your local network IP (where the backend is running):
+
+> **Important**: `api.js` is **gitignored** and must be created manually.
+
+Create a file named `api.js` in the project root (`mobile/api.js`) with the following content:
+
 ```javascript
-const API_BASE_URL = 'http://YOUR_LOCAL_IP:5000';
+const API_BASE_URL = 'https://your-backend-url.com';
+export default API_BASE_URL;
 ```
+
+Replace the URL with your backend's address:
+- **Local development**: `http://YOUR_LOCAL_IP:5000`
+- **Production (Render)**: `https://your-app-name.onrender.com`
+
+### Required Backend API Endpoints
+
+The mobile app depends on the following backend endpoints:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/login` | User login (ID, birthdate, password) |
+| `POST` | `/auth/register` | User registration |
+| `POST` | `/auth/forgot-password` | Password reset (ID, birthdate, new password) |
+| `GET` | `/thesis/search` | Search theses by query, year, category, type |
+| `GET` | `/thesis/count` | Get total thesis count |
+| `GET` | `/thesis/years` | Get available academic years for filtering |
+| `GET` | `/thesis/categories` | Get available departments for filtering |
+| `GET` | `/thesis/department-counts` | Get thesis counts grouped by department |
+| `GET` | `/thesis/:id` | Get single thesis details |
+| `POST` | `/thesis/recommendations` | AI-generated thesis title recommendations |
+| `GET` | `/user/profile` | Get user profile |
+| `PUT` | `/user/profile` | Update user profile |
+| `POST` | `/user/profile-photo` | Upload profile photo |
+| `GET` | `/user/ai-history` | Get AI recommendation history |
+| `POST` | `/user/ai-history` | Save AI recommendation |
+| `DELETE` | `/user/ai-history/:id` | Delete specific AI history entry |
+| `DELETE` | `/user/ai-history` | Clear all AI history |
+| `POST` | `/user/analyze` | Analyze uploaded research document |
+| `POST` | `/user/theses` | Submit a new thesis |
+| `GET` | `/user/theses` | Get user's submitted theses |
+| `POST` | `/user/analysis-drafts` | Save analysis draft |
+| `GET` | `/user/analysis-drafts` | Get all analysis drafts |
 
 ### 4. Start the Application
 ```bash

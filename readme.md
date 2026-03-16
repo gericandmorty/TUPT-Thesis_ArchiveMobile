@@ -116,6 +116,14 @@ Scan the QR code displayed in the terminal using:
 
 ---
 
+## 📥 Downloads
+
+Download the latest APK build from Google Drive:
+
+🔗 **[Download APK (Google Drive)](https://drive.google.com/drive/folders/1ihnITLykvm60CUUKOiEGjTRATi5Smj0v?usp=drive_link)**
+
+---
+
 ## 🤝 Contribution
 
 This project is part of a 4th-year Thesis at TUP Taguig. For inquiries regarding access or contributions, please contact the repository administrator.

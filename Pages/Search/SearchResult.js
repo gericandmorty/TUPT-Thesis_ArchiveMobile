@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -134,7 +134,7 @@ const SearchResultScreen = () => {
   // AI Feature States
   const [aiRecommendation, setAiRecommendation] = useState(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchFilters();
@@ -180,14 +180,13 @@ const SearchResultScreen = () => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
       
-      const params = new URLSearchParams();
-      if (query) params.append('query', query);
-      if (selectedYear && selectedYear !== 'all') params.append('year', selectedYear);
-      if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
-      if (selectedType && selectedType !== 'all') params.append('type', selectedType);
+      const params = [];
+      if (query) params.push(`query=${encodeURIComponent(query)}`);
+      if (selectedYear && selectedYear !== 'all') params.push(`year=${encodeURIComponent(selectedYear)}`);
+      if (selectedCategory && selectedCategory !== 'all') params.push(`category=${encodeURIComponent(selectedCategory)}`);
+      if (selectedType && selectedType !== 'all') params.push(`type=${encodeURIComponent(selectedType)}`);
 
-      // Fetch all if no query and no filters (optional, but good for "Browse")
-      const response = await fetch(`${API_BASE_URL}/thesis/search?${params.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/thesis/search?${params.join('&')}`, {
           headers
       });
       

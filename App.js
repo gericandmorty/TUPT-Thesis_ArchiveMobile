@@ -1,9 +1,11 @@
+import 'react-native-gesture-handler';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import LandingScreen from './Pages/Landing';
 import LoginScreen from './Pages/Auth/Login';
 import RegisterScreen from './Pages/Auth/Register';
+import ForgotScreen from './Pages/Auth/Forgot';
 import HomeScreen from './Pages/Home';
 import ProfileScreen from './Pages/User/Profile';
 import ThesisAnalysisScreen from './Pages/Thesis/ThesisAnalysis';
@@ -36,6 +38,7 @@ export default function App() {
            <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="Forgot" component={ForgotScreen} />
           
           <Stack.Screen name="DocumentsHub" component={DocumentsHubScreen} />
           <Stack.Screen name="AnalysisWorkspace" component={AnalysisWorkspaceScreen} />

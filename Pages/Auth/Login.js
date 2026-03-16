@@ -65,7 +65,13 @@ const LoginScreen = () => {
           if (Platform.OS !== 'ios') {
               setShowDatePicker(false);
           }
-          const formattedDate = date.toISOString().split('T')[0];
+
+          // Use local date to avoid timezone shift from toISOString()
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const formattedDate = `${year}-${month}-${day}`;
+
           setBirthdate(formattedDate);
       } else {
           setShowDatePicker(false);
@@ -239,7 +245,7 @@ const LoginScreen = () => {
                      </TouchableOpacity>
                  </View>
                  
-                 <TouchableOpacity style={styles.forgotBtn}>
+                 <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('Forgot')}>
                      <Text style={styles.forgotText}>FORGOT PASSWORD?</Text>
                  </TouchableOpacity>
              </View>
@@ -295,25 +301,26 @@ const styles = StyleSheet.create({
       marginBottom: 24,
   },
   formGroup: {
-      gap: 20,
+      gap: 24,
   },
   inputContainer: {
-      gap: 4,
+      gap: 8,
   },
   label: {
       fontSize: 13,
       fontWeight: 'bold',
       color: '#4b5563',
+      marginLeft: 4,
   },
   input: {
       width: '100%',
-      height: 48,
+      height: 56,
       backgroundColor: '#f9fafb',
       borderWidth: 1,
       borderColor: '#e5e7eb',
       paddingHorizontal: 16,
-      borderRadius: 12,
-      fontSize: 14,
+      borderRadius: 16,
+      fontSize: 15,
       color: '#111827',
       fontWeight: 'bold',
   },

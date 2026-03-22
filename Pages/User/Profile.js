@@ -129,10 +129,13 @@ const ProfileScreen = () => {
     setIsLoading(true);
 
     try {
+      const token = await AsyncStorage.getItem('userToken');
+
       const response = await fetch(`${API_BASE_URL}/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           userId: user._id,

@@ -9,12 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import API_BASE_URL from '../../api';
 import { useToast } from '../../utils/ToastContext';
 import Colors from '../../utils/Colors';
@@ -187,6 +189,66 @@ const ProfileScreen = () => {
     });
   };
 
+  const pickImage = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        await uploadProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      toast.show('Failed to open image picker', 'error');
+    }
+  };
+
+  const uploadProfileImage = async (uri) => {
+    setIsLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      let formData = new FormData();
+      let filename = uri.split('/').pop();
+      let match = /\.(\w+)$/.exec(filename);
+      let type = match ? `image/${match[1]}` : `image`;
+
+      formData.append('photo', { uri: uri, name: filename, type });
+
+      const response = await fetch(`${API_BASE_URL}/user/profile-photo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const updatedPhoto = data.data?.profilePhoto || data.profilePhoto;
+        if (updatedPhoto) {
+          const updatedUser = { ...user, profilePhoto: updatedPhoto };
+          await AsyncStorage.setItem('userData', JSON.stringify(updatedUser));
+          setUser(updatedUser);
+          toast.show('Profile photo updated!', 'success');
+        }
+      } else {
+        toast.show(data.message || 'Failed to upload photo', 'error');
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.show('Error uploading photo. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <View style={styles.gradientBackground}>
@@ -218,9 +280,16 @@ const ProfileScreen = () => {
               </TouchableOpacity>
               
               <View style={styles.avatarContainer}>
-                <View style={[styles.avatar, { backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.primary }]}>
-                  <Ionicons name="person" size={48} color={Colors.primary} />
-                </View>
+                <TouchableOpacity onPress={pickImage} style={[styles.avatar, { backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.primary }]}>
+                  {user.profilePhoto ? (
+                    <Image source={{ uri: user.profilePhoto }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+                  ) : (
+                    <Ionicons name="person" size={48} color={Colors.primary} />
+                  )}
+                  <View style={styles.cameraIconContainer}>
+                    <Ionicons name="camera" size={16} color="#fff" />
+                  </View>
+                </TouchableOpacity>
               </View>
               
               <Text style={styles.welcomeTitle}>{user.name}</Text>
@@ -454,11 +523,25 @@ const styles = StyleSheet.create({
   avatar: {
     width: 100,
     height: 100,
-    borderRadius: 20,
+    borderRadius: 50,
+    overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
       android: { elevation: 8 },
     }),
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: Colors.primary,
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.background,
   },
   welcomeTitle: {
     fontSize: 28,

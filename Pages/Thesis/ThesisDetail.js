@@ -79,21 +79,36 @@ const ThesisDetailScreen = () => {
 
   const saveToRecentHistory = async (thesisData) => {
     try {
+      const token = await AsyncStorage.getItem('userToken');
+      
+      // 1. Save to Backend (Database)
+      if (token) {
+        fetch(`${API_BASE_URL}/user/session-history`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            id: thesisData._id || thesisData.id,
+            title: thesisData.title,
+            year: thesisData.year_range || thesisData.year || 'Unknown'
+          })
+        }).catch(err => console.log('Silently failed to save session history to DB', err));
+      }
+
+      // 2. Save to Local fallback (AsyncStorage)
       const recentStr = await AsyncStorage.getItem('recent_theses');
       let recentList = recentStr ? JSON.parse(recentStr) : [];
       
-      // Create simplified item
       const newItem = {
-        id: thesisData.id || thesisData._id,
+        id: thesisData._id || thesisData.id,
         title: thesisData.title,
         year: thesisData.year_range || thesisData.year || 'Unknown'
       };
 
-      // Remove existing to avoid duplicates and move to top
       recentList = recentList.filter(item => item.id !== newItem.id);
       recentList.unshift(newItem);
-
-      // Keep only last 10
       recentList = recentList.slice(0, 10);
 
       await AsyncStorage.setItem('recent_theses', JSON.stringify(recentList));

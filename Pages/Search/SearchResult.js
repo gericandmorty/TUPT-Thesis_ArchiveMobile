@@ -335,7 +335,8 @@ const SearchResultScreen = () => {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          prompt: `I am looking for theses related to "${query}". Based on this query, please recommend a better or more specific thesis title. Your response MUST include three distinct sections formatted exactly like this:\n\nFunctional Requirements:\n[Your text here]\n\nConclusion:\n[Your text here]\n\nRecommendations:\n[Your text here]`
+          query,
+          prompt: query
         })
       });
 
@@ -394,12 +395,12 @@ const SearchResultScreen = () => {
         setLocalComparison(data);
       } else {
         alert(data.message || 'Failed to check similarity');
-        setIsComparisonModalOpen(false);
+        setIsIntelligenceModalOpen(false);
       }
     } catch (error) {
       console.error('Local Comparison error:', error);
       alert('Network error while checking similarity.');
-      setIsComparisonModalOpen(false);
+      setIsIntelligenceModalOpen(false);
     } finally {
       setIsIntelligenceLoading(false);
     }
@@ -440,13 +441,6 @@ const SearchResultScreen = () => {
         onClear={clearFilters}
         availableYears={availableYears}
         availableCourses={availableCourses}
-      />
-
-        <ComparisonModal 
-        visible={isComparisonModalOpen}
-        onClose={() => setIsComparisonModalOpen(false)}
-        isLoading={isLoadingLocal}
-        data={localComparison}
       />
 
       <LinearGradient colors={[Colors.background, Colors.surface, Colors.background]} style={styles.gradientBackground}>

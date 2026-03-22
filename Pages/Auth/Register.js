@@ -79,6 +79,19 @@ const RegisterScreen = () => {
       toast.show('Please enter a valid ID number: TUPT-XX-XXXX', 'error');
       return;
     }
+
+    // Age validation (Must be at least 18)
+    const today = new Date();
+    const birth = new Date(birthdate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      toast.show('Institutional access requires you to be at least 18 years old', 'error');
+      return;
+    }
     if (password !== confirmPassword) {
       toast.show('Passwords do not match', 'error');
       return;

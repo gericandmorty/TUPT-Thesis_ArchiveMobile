@@ -38,9 +38,10 @@ const HomeScreen = () => {
 
     // Data States
     const [thesisCount, setThesisCount] = useState(0);
-    const [recentTheses, setRecentTheses] = useState([]);
     const [deptCounts, setDeptCounts] = useState([]);
     const [aiHistory, setAiHistory] = useState([]);
+    const [sessionHistory, setSessionHistory] = useState([]);
+    const [localHistory, setLocalHistory] = useState([]);
     const [loadingAi, setLoadingAi] = useState(false);
 
     // Selected AI Modal
@@ -79,13 +80,7 @@ const HomeScreen = () => {
                 setUser(JSON.parse(userDataStr));
             }
 
-            // Load Recent offline
-            const recentStr = await AsyncStorage.getItem('recent_theses');
-            if (recentStr) {
-                setRecentTheses(JSON.parse(recentStr));
-            } else {
-                setRecentTheses([]);
-            }
+            // Local history is now handled by the backend session-history endpoint
 
             if (token) {
                 // Fetch Thesis Count
@@ -104,18 +99,23 @@ const HomeScreen = () => {
                 .then(data => { if (Array.isArray(data)) setDeptCounts(data) })
                 .catch(err => console.log('Error fetching dept counts', err));
 
-                // Fetch AI History
+                // Fetch All Histories
                 setLoadingAi(true);
-                fetch(`${API_BASE_URL}/user/ai-history`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                Promise.all([
+                    fetch(`${API_BASE_URL}/user/ai-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/user/session-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_BASE_URL}/user/local-history`, { headers: { 'Authorization': `Bearer ${token}` } })
+                ])
+                .then(async ([aiRes, sessionRes, localRes]) => {
+                    const aiData = await aiRes.json();
+                    const sessionData = await sessionRes.json();
+                    const localData = await localRes.json();
+
+                    if (aiData.success) setAiHistory(aiData.data || []);
+                    if (sessionData.success) setSessionHistory(sessionData.data || []);
+                    if (localData.success) setLocalHistory(localData.data || []);
                 })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.data) {
-                        setAiHistory(data.data);
-                    }
-                })
-                .catch(err => console.log('Error fetching AI history', err))
+                .catch(err => console.log('Error fetching history:', err))
                 .finally(() => setLoadingAi(false));
             }
         } catch (error) {
@@ -140,13 +140,24 @@ const HomeScreen = () => {
     const clearRecentViews = async () => {
         Alert.alert(
             "Clear Recent Views",
-            "Are you sure you want to clear your local viewing history?",
+            "Are you sure you want to permanently clear your research viewing history from all devices?",
             [
                 { text: "Cancel", style: "cancel" },
                 {
                     text: "Clear All", onPress: async () => {
-                        await AsyncStorage.removeItem('recent_theses');
-                        setRecentTheses([]);
+                        try {
+                            const token = await AsyncStorage.getItem('userToken');
+                            const res = await fetch(`${API_BASE_URL}/user/session-history`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                setSessionHistory([]);
+                                await AsyncStorage.removeItem('recent_theses');
+                            }
+                        } catch (err) {
+                            Alert.alert("Error", "Failed to clear history");
+                        }
                     }, style: 'destructive'
                 }
             ]
@@ -304,8 +315,8 @@ const HomeScreen = () => {
                             <View style={styles.statCard}>
                                 <View style={styles.statInfo}>
                                     <Text style={styles.statLabelTop}>RECENTLY VIEWED</Text>
-                                    <Text style={styles.statValue}>{recentTheses.length}</Text>
-                                    <Text style={[styles.statLabelBottom, { color: Colors.orange }]}>ACTIVE ITEMS</Text>
+                                    <Text style={styles.statValue}>{sessionHistory.length}</Text>
+                                    <Text style={[styles.statLabelBottom, { color: Colors.orange }]}>DATABASE RECORDS</Text>
                                 </View>
                                 <View style={[styles.statIconBox, { backgroundColor: `${Colors.orange}15`, borderColor: `${Colors.orange}30` }]}>
                                     <Ionicons name="time" size={24} color={Colors.orange} />
@@ -405,28 +416,33 @@ const HomeScreen = () => {
                                         <View style={[styles.titleDividerRed, { backgroundColor: '#f97316' }]} />
                                         <Text style={styles.sectionTitleText}>RECENT VIEWS</Text>
                                    </View>
-                                   {recentTheses.length > 0 && (
+                                   {sessionHistory.length > 0 && (
                                        <TouchableOpacity style={styles.clearHistoryBtnOrange} onPress={clearRecentViews}>
                                            <Text style={styles.clearHistoryTextOrange}>CLEAR ALL</Text>
                                        </TouchableOpacity>
                                    )}
                               </View>
+                               <View style={styles.cardBlock}>
+                                  {sessionHistory.length > 0 ? (
+                                      sessionHistory.slice(0, 3).map((item, idx) => {
+                                          const thesisTitle = item.title || (item.thesis && item.thesis.title) || 'Unknown Thesis';
+                                          const thesisYear = item.year || (item.thesis && item.thesis.year_range) || 'Unknown';
+                                          const thesisId = item.thesis?._id || item.thesis?.id || item._id;
 
-                              <View style={styles.cardBlock}>
-                                  {recentTheses.length > 0 ? (
-                                      recentTheses.slice(0, 3).map((thesis, idx) => (
-                                          <TouchableOpacity 
-                                               key={thesis.id || idx}
-                                               style={[styles.recentItemView, idx !== recentTheses.slice(0, 3).length - 1 && styles.borderBottom]}
-                                               onPress={() => navigation.navigate('ThesisDetail', { thesisId: thesis.id })}
-                                          >
-                                               <Text style={styles.recentItemYear}>{thesis.year || 'No Year'}</Text>
-                                               <Text style={styles.recentItemTitle} numberOfLines={2}>{thesis.title}</Text>
-                                          </TouchableOpacity>
-                                      ))
+                                          return (
+                                              <TouchableOpacity 
+                                                   key={item._id || idx}
+                                                   style={[styles.recentItemView, idx !== sessionHistory.slice(0, 3).length - 1 && styles.borderBottom]}
+                                                   onPress={() => navigation.navigate('ThesisDetail', { thesisId: thesisId })}
+                                              >
+                                                   <Text style={styles.recentItemYear}>{thesisYear}</Text>
+                                                   <Text style={styles.recentItemTitle} numberOfLines={2}>{thesisTitle}</Text>
+                                              </TouchableOpacity>
+                                          );
+                                      })
                                   ) : (
                                       <View style={styles.emptyStateMinimal}>
-                                           <Text style={styles.emptyTextSub}>No history found</Text>
+                                           <Text style={styles.emptyTextSub}>No history sync found</Text>
                                       </View>
                                   )}
                               </View>

@@ -19,6 +19,7 @@ import CustomHeader from './Navigation/CustomHeader';
 import HamburgerMenu from './Navigation/HamburgerMenu';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '../api';
+import Colors from '../utils/Colors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -231,7 +232,7 @@ const HomeScreen = () => {
 
     return (
         <LinearGradient
-            colors={['#7f0000', '#240000']}
+            colors={[Colors.background, Colors.surface, Colors.background]}
             style={styles.container}
         >
             <CustomHeader
@@ -280,10 +281,10 @@ const HomeScreen = () => {
                                 <View style={styles.statInfo}>
                                     <Text style={styles.statLabelTop}>ARCHIVE SIZE</Text>
                                     <Text style={styles.statValue}>{thesisCount.toLocaleString()}</Text>
-                                    <Text style={[styles.statLabelBottom, { color: '#ef4444' }]}>THESES INDEXED</Text>
+                                    <Text style={[styles.statLabelBottom, { color: Colors.primary }]}>THESES INDEXED</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
-                                    <Ionicons name="search" size={24} color="#f87171" />
+                                <View style={[styles.statIconBox, { backgroundColor: `${Colors.primary}15`, borderColor: `${Colors.primary}30` }]}>
+                                    <Ionicons name="search" size={24} color={Colors.primary} />
                                 </View>
                             </View>
 
@@ -292,10 +293,10 @@ const HomeScreen = () => {
                                 <View style={styles.statInfo}>
                                     <Text style={styles.statLabelTop}>AI HISTORY</Text>
                                     <Text style={styles.statValue}>{aiHistory.length}</Text>
-                                    <Text style={[styles.statLabelBottom, { color: '#a855f7' }]}>RECOMMENDATIONS</Text>
+                                    <Text style={[styles.statLabelBottom, { color: Colors.purple }]}>RECOMMENDATIONS</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.1)', borderColor: 'rgba(168, 85, 247, 0.2)' }]}>
-                                    <Ionicons name="hardware-chip" size={24} color="#c084fc" />
+                                <View style={[styles.statIconBox, { backgroundColor: `${Colors.purple}15`, borderColor: `${Colors.purple}30` }]}>
+                                    <Ionicons name="hardware-chip" size={24} color={Colors.purple} />
                                 </View>
                             </View>
 
@@ -304,10 +305,10 @@ const HomeScreen = () => {
                                 <View style={styles.statInfo}>
                                     <Text style={styles.statLabelTop}>RECENTLY VIEWED</Text>
                                     <Text style={styles.statValue}>{recentTheses.length}</Text>
-                                    <Text style={[styles.statLabelBottom, { color: '#f97316' }]}>ACTIVE ITEMS</Text>
+                                    <Text style={[styles.statLabelBottom, { color: Colors.orange }]}>ACTIVE ITEMS</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: 'rgba(249, 115, 22, 0.1)', borderColor: 'rgba(249, 115, 22, 0.2)' }]}>
-                                    <Ionicons name="time" size={24} color="#fb923c" />
+                                <View style={[styles.statIconBox, { backgroundColor: `${Colors.orange}15`, borderColor: `${Colors.orange}30` }]}>
+                                    <Ionicons name="time" size={24} color={Colors.orange} />
                                 </View>
                             </View>
                         </ScrollView>
@@ -443,14 +444,14 @@ const HomeScreen = () => {
                               <View style={styles.cardBlock}>
                                    {deptCounts.slice(0, 5).map((dept, idx) => (
                                        <TouchableOpacity 
-                                           key={dept.category + idx}
+                                           key={dept.course + idx}
                                            style={[styles.deptRow, idx !== deptCounts.slice(0, 5).length - 1 && styles.borderBottom]}
                                            onPress={() => {
-                                                // Route to smart search with category filter applied
-                                                navigation.navigate('SearchResult', { category: dept.category });
+                                                // Route to smart search with course filter applied
+                                                navigation.navigate('SearchResult', { course: dept.course });
                                            }}
                                        >
-                                            <Text style={styles.deptName}>{dept.category}</Text>
+                                            <Text style={styles.deptName}>{dept.course}</Text>
                                             <Text style={styles.deptCount}>{dept.count}</Text>
                                        </TouchableOpacity>
                                    ))}
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
     },
     greetingHeader: {
         fontSize: 10,
-        color: '#fecaca',
+        color: Colors.primary,
         fontWeight: '900',
         letterSpacing: 2,
         textTransform: 'uppercase',
@@ -524,12 +525,12 @@ const styles = StyleSheet.create({
     welcomeTitle: {
         fontSize: 32,
         fontWeight: '900',
-        color: '#fff',
+        color: Colors.foreground,
         letterSpacing: -0.5,
     },
     welcomeSub: {
         fontSize: 14,
-        color: 'rgba(255,255,255,0.7)',
+        color: Colors.textSecondary,
         fontWeight: '500',
         marginTop: 6,
     },
@@ -544,7 +545,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     statCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: Colors.card,
         borderRadius: 24,
         padding: 24,
         width: width * 0.75,
@@ -553,9 +554,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: Colors.border,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16 },
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16 },
             android: { elevation: 6 }
         }),
     },
@@ -564,7 +565,7 @@ const styles = StyleSheet.create({
     },
     statLabelTop: {
         fontSize: 10,
-        color: '#6b7280',
+        color: Colors.textSecondary,
         fontWeight: '900',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 36,
         fontWeight: '900',
-        color: '#111827',
+        color: Colors.foreground,
         lineHeight: 40,
     },
     statLabelBottom: {
@@ -674,10 +675,10 @@ const styles = StyleSheet.create({
         letterSpacing: 1.5,
     },
     cardBlock: {
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: Colors.card,
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: Colors.border,
         overflow: 'hidden',
     },
 
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
     },
     borderBottom: {
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+        borderBottomColor: Colors.border,
     },
     historyItemBox: {
         flexDirection: 'row',
@@ -762,7 +763,7 @@ const styles = StyleSheet.create({
     recentItemYear: {
         fontSize: 9,
         fontWeight: '900',
-        color: '#fca5a5',
+        color: Colors.secondary,
         textTransform: 'uppercase',
         letterSpacing: 2,
         marginBottom: 4,
@@ -770,7 +771,7 @@ const styles = StyleSheet.create({
     recentItemTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#fff',
+        color: Colors.foreground,
         lineHeight: 20,
     },
     emptyStateMinimal: {
@@ -812,15 +813,17 @@ const styles = StyleSheet.create({
         zIndex: 100,
     },
     modalContent: {
-        backgroundColor: '#fff',
+        backgroundColor: Colors.card,
         width: '100%',
         maxHeight: '85%',
         borderRadius: 32,
         paddingTop: 32,
         paddingBottom: 24,
+        borderWidth: 1,
+        borderColor: Colors.border,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 20 },
-            android: { elevation: 10 }
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.5, shadowRadius: 30 },
+            android: { elevation: 20 }
         }),
     },
     modalCloseBtn: {
@@ -829,7 +832,7 @@ const styles = StyleSheet.create({
         right: 20,
         width: 36,
         height: 36,
-        backgroundColor: '#f3f4f6',
+        backgroundColor: 'rgba(255,255,255,0.08)',
         borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
@@ -845,46 +848,46 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 16,
-        backgroundColor: '#fef2f2',
+        backgroundColor: `${Colors.primary}15`,
         borderWidth: 1,
-        borderColor: '#fee2e2',
+        borderColor: `${Colors.primary}30`,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
     },
     modalHeaderTextFlex: {
         flex: 1,
-        paddingRight: 20, // Make room for close btn
+        paddingRight: 20,
     },
     modalTitle: {
         fontSize: 22,
         fontWeight: '900',
-        color: '#111827',
+        color: Colors.foreground,
         lineHeight: 26,
         marginBottom: 4,
     },
     modalSubtitle: {
         fontSize: 10,
-        color: '#6b7280',
+        color: Colors.textSecondary,
         fontWeight: '900',
         letterSpacing: 1.5,
     },
     modalScrollBodyArea: {
         flexShrink: 1,
         marginHorizontal: 24,
-        backgroundColor: '#f9fafb',
+        backgroundColor: 'rgba(255,255,255,0.04)',
         borderWidth: 1,
-        borderColor: '#f3f4f6',
+        borderColor: Colors.border,
         borderRadius: 24,
     },
     modalBodyText: {
         fontSize: 15,
-        color: '#374151',
+        color: Colors.textSecondary,
         lineHeight: 26,
     },
     modalBoldText: {
         fontWeight: '900',
-        color: '#111827',
+        color: Colors.foreground,
     }
 });
 

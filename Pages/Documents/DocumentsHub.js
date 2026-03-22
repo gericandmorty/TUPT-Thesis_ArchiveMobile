@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import CustomHeader from '../Navigation/CustomHeader';
 import HamburgerMenu from '../Navigation/HamburgerMenu';
+import Colors from '../../utils/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -21,7 +22,7 @@ const DocumentsHub = () => {
     };
 
     return (
-        <LinearGradient colors={['#7f0000', '#240000']} style={styles.container}>
+        <LinearGradient colors={[Colors.background, Colors.surface, Colors.background]} style={styles.container}>
             <CustomHeader
                 onMenuPress={() => setIsMenuVisible(true)}
                 onSearch={handleSearch}
@@ -53,8 +54,8 @@ const DocumentsHub = () => {
                         onPress={() => navigation.navigate('AnalysisWorkspace')}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.cardIconBox, { backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
-                            <Ionicons name="document-text" size={28} color="#ef4444" />
+                        <View style={[styles.cardIconBox, { backgroundColor: `${Colors.primary}15`, borderColor: `${Colors.primary}30` }]}>
+                            <Ionicons name="document-text" size={28} color={Colors.primary} />
                         </View>
                         <View style={styles.cardTextContainer}>
                             <Text style={styles.cardTitle}>Analysis Workspace</Text>
@@ -69,8 +70,8 @@ const DocumentsHub = () => {
                         onPress={() => navigation.navigate('MySubmissions')}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.cardIconBox, { backgroundColor: '#eff6ff', borderColor: '#dbeafe' }]}>
-                            <Ionicons name="folder-open" size={28} color="#3b82f6" />
+                        <View style={[styles.cardIconBox, { backgroundColor: `${Colors.purple}15`, borderColor: `${Colors.purple}30` }]}>
+                            <Ionicons name="folder-open" size={28} color={Colors.purple} />
                         </View>
                         <View style={styles.cardTextContainer}>
                             <Text style={styles.cardTitle}>My Submissions / Drafts</Text>
@@ -85,8 +86,8 @@ const DocumentsHub = () => {
                         onPress={() => navigation.navigate('SubmitThesis')}
                         activeOpacity={0.8}
                     >
-                        <View style={[styles.cardIconBox, { backgroundColor: '#f0fdf4', borderColor: '#dcfce7' }]}>
-                            <Ionicons name="cloud-upload" size={28} color="#22c55e" />
+                        <View style={[styles.cardIconBox, { backgroundColor: `${Colors.orange}15`, borderColor: `${Colors.orange}30` }]}>
+                            <Ionicons name="cloud-upload" size={28} color={Colors.orange} />
                         </View>
                         <View style={styles.cardTextContainer}>
                             <Text style={styles.cardTitle}>Submit Thesis</Text>
@@ -149,19 +150,19 @@ const styles = StyleSheet.create({
     heroTagline: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#fecaca',
+        color: Colors.primary,
         letterSpacing: 2,
         marginBottom: 8,
     },
     heroTitle: {
         fontSize: 32,
         fontWeight: '900',
-        color: '#ffffff',
+        color: Colors.foreground,
         marginBottom: 8,
     },
     heroDesc: {
         fontSize: 14,
-        color: 'rgba(255,255,255,0.7)',
+        color: Colors.textSecondary,
         fontWeight: '500',
         lineHeight: 20,
     },
@@ -171,20 +172,22 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },
     actionCard: {
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.card,
         borderRadius: 24,
         padding: 20,
         flexDirection: 'row',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.border,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 10 },
-            android: { elevation: 4 }
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
+            android: { elevation: 6 }
         }),
     },
     cardIconBox: {
-        width: 56,
-        height: 56,
-        borderRadius: 16,
+        width: 52,
+        height: 52,
+        borderRadius: 14,
         borderWidth: 1,
         alignItems: 'center',
         justifyContent: 'center',
@@ -195,14 +198,14 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     cardTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '900',
-        color: '#111827',
+        color: Colors.foreground,
         marginBottom: 4,
     },
     cardDescription: {
         fontSize: 12,
-        color: '#6b7280',
+        color: Colors.textSecondary,
         lineHeight: 16,
     },
     infoSection: {
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         borderRadius: 12,
-        backgroundColor: '#f87171',
+        backgroundColor: Colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,

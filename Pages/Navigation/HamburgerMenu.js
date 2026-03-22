@@ -14,25 +14,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '../../api';
+import Colors from '../../utils/Colors';
 
 const { width, height } = Dimensions.get('window');
 
 const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
   const slideAnim = React.useRef(new Animated.Value(-width)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  
-  // Premium Animation States
   const profileAnim = React.useRef(new Animated.Value(0)).current;
   const itemAnims = React.useRef([
-      new Animated.Value(0), // HOME
-      new Animated.Value(0), // ANALYSIS WORKSPACE
-      new Animated.Value(0), // SUBMIT THESIS
-      new Animated.Value(0)  // MY SUBMISSIONS
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
   ]).current;
 
   const [user, setUser] = useState(null);
 
-  // Load user data from AsyncStorage when menu becomes visible
   useEffect(() => {
     if (isVisible) {
       loadUserData();
@@ -43,12 +42,9 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
     try {
       const userDataStr = await AsyncStorage.getItem('userData');
       const token = await AsyncStorage.getItem('userToken');
-      
       if (userDataStr) {
         const cached = JSON.parse(userDataStr);
         setUser(cached);
-
-        // Fetch latest profile from API to keep data fresh (like the web profile page does)
         if (token && cached._id) {
           try {
             const res = await fetch(`${API_BASE_URL}/user/profile?userId=${cached._id}`, {
@@ -57,13 +53,11 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
             if (res.ok) {
               const data = await res.json();
               if (data.success && data.data?.user) {
-                // Save full user object — exactly like web does
                 setUser(data.data.user);
                 await AsyncStorage.setItem('userData', JSON.stringify(data.data.user));
               }
             }
           } catch (fetchErr) {
-            // Silently fail — cached data is still shown
             console.log('Could not refresh profile from API:', fetchErr.message);
           }
         }
@@ -75,61 +69,30 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
 
   React.useEffect(() => {
     if (isVisible) {
-      // Step 1: Slide menu and fade overlay
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start(() => {
-        // Step 2: Entrance animation for profile
-        Animated.timing(profileAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }).start();
-
-        // Step 3: Staggered entrance for menu items
-        const itemAnimations = itemAnims.map((anim, index) => 
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 300,
-            delay: index * 60,
-            useNativeDriver: true,
-          })
+        Animated.timing(profileAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+        const itemAnimations = itemAnims.map((anim, index) =>
+          Animated.timing(anim, { toValue: 1, duration: 300, delay: index * 60, useNativeDriver: true })
         );
         Animated.parallel(itemAnimations).start();
       });
     } else {
-      // Step 4: Out animation
       Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: -width,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
+        Animated.timing(slideAnim, { toValue: -width, duration: 250, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
       ]).start(() => {
-        // Reset all entrance animations for next opening
         profileAnim.setValue(0);
         itemAnims.forEach(anim => anim.setValue(0));
       });
     }
   }, [isVisible]);
 
-  // Updated navigation routes matching the screenshot
   const menuItems = [
     { icon: 'home', label: 'HOME', screen: 'Home' },
+    { icon: 'people', label: 'COLLABORATION', screen: 'Collaboration' },
     { icon: 'document-text', label: 'ANALYSIS WORKSPACE', screen: 'AnalysisWorkspace' },
     { icon: 'cloud-upload', label: 'SUBMIT THESIS', screen: 'SubmitThesis' },
     { icon: 'folder', label: 'MY SUBMISSIONS', screen: 'MySubmissions' },
@@ -137,10 +100,7 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
 
   const handleMenuItemPress = (screen) => {
     onClose();
-    // Navigate to the specified screen. Need to ensure these exist in App.js
-    if (navigation && screen) {
-       navigation.navigate(screen);
-    }
+    if (navigation && screen) navigation.navigate(screen);
   };
 
   const handleLogout = async () => {
@@ -149,11 +109,7 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
       await AsyncStorage.removeItem('userToken');
       setUser(null);
       onClose();
-      // Reset navigation stack to Login screen
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -164,106 +120,64 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
   return (
     <>
       {/* Overlay */}
-      <Animated.View 
-        style={[
-          styles.overlay,
-          { opacity: fadeAnim }
-        ]}
-      >
-        <TouchableOpacity 
-          style={StyleSheet.absoluteFill}
-          onPress={onClose}
-          activeOpacity={1}
-        />
+      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1} />
       </Animated.View>
-      
-      {/* Menu Side Panel */}
-      <Animated.View 
-        style={[
-          styles.menuContainer,
-          { transform: [{ translateX: slideAnim }] }
-        ]}
-      >
+
+      {/* Side Panel */}
+      <Animated.View style={[styles.menuContainer, { transform: [{ translateX: slideAnim }] }]}>
         <LinearGradient
-          colors={['#7f0000', '#450a0a']} // Deep dark continuous red
+          colors={[Colors.surface, Colors.background]}
           style={styles.menuGradient}
         >
-          {/* Top Profile Section */}
+          {/* Profile Header */}
           <Animated.View style={[
             styles.headerSection,
             {
               opacity: profileAnim,
-              transform: [{
-                translateY: profileAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [20, 0]
-                })
-              }]
+              transform: [{ translateY: profileAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
             }
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.userSection}
-              onPress={() => {
-                onClose();
-                navigation.navigate('Profile');
-              }}
+              onPress={() => { onClose(); navigation.navigate('Profile'); }}
               activeOpacity={0.8}
             >
               <View style={styles.userAvatarContainer}>
-                {/* Profile photo or user icon */}
                 {user?.profilePhoto ? (
                   <Image
                     source={{ uri: user.profilePhoto.startsWith('http') ? user.profilePhoto : `${API_BASE_URL}${user.profilePhoto}` }}
                     style={styles.userAvatar}
                   />
                 ) : (
-                  <LinearGradient
-                    colors={['#111827', '#1f2937']}
-                    style={styles.userAvatar}
-                  >
-                    <Ionicons name="person" size={48} color="white" />
-                  </LinearGradient>
+                  <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                    <Ionicons name="person" size={44} color={Colors.textDim} />
+                  </View>
                 )}
-                {/* Red Edit Floating Action Button on Bottom Right */}
                 <View style={styles.editIconContainer}>
-                  <Ionicons name="create-outline" size={14} color="white" />
+                  <Ionicons name="create-outline" size={13} color={Colors.background} />
                 </View>
               </View>
-              
-              <Text style={styles.userName}>
-                {user?.name || 'Geric'} {/* Use real name from Auth state or fallback to image name */}
-              </Text>
+
+              <Text style={styles.userName}>{user?.name || 'Researcher'}</Text>
 
               <View style={styles.userIdBadge}>
-                <Text style={styles.userIdText}>
-                  {user?.idNumber || 'TUPT-11-1111'}
-                </Text>
+                <Text style={styles.userIdText}>{user?.idNumber || 'TUPT-XX-XXXX'}</Text>
               </View>
-              
-              <Text style={styles.portalSubtitle}>
-                UNIVERSITY ARCHIVE PORTAL
-              </Text>
+
+              <Text style={styles.portalSubtitle}>UNIVERSITY ARCHIVE PORTAL</Text>
             </TouchableOpacity>
           </Animated.View>
 
-          {/* List of Navigation Actions */}
-          <ScrollView 
-            style={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContentContainer}
-          >
+          {/* Navigation Items */}
+          <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContentContainer}>
             <View style={styles.menuItemsBlock}>
               {menuItems.map((item, index) => (
-                <Animated.View 
+                <Animated.View
                   key={index}
                   style={{
                     opacity: itemAnims[index],
-                    transform: [{
-                      translateX: itemAnims[index].interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-20, 0]
-                      })
-                    }]
+                    transform: [{ translateX: itemAnims[index].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }]
                   }}
                 >
                   <TouchableOpacity
@@ -273,35 +187,33 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
                   >
                     <View style={styles.menuItemLeft}>
                       <View style={styles.menuIconContainer}>
-                        <Ionicons name={item.icon} size={22} color="#fca5a5" />
+                        <Ionicons name={item.icon} size={20} color={Colors.primary} />
                       </View>
                       <Text style={styles.menuItemLabel}>{item.label}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#f87171" style={styles.chevronIcon} />
+                    <Ionicons name="chevron-forward" size={18} color={Colors.textDim} style={styles.chevronIcon} />
                   </TouchableOpacity>
                 </Animated.View>
               ))}
             </View>
           </ScrollView>
 
-          {/* Bottom Logout Section */}
+          {/* Logout */}
           <View style={styles.bottomSection}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.logoutButton}
               onPress={user ? handleLogout : () => { onClose(); navigation.navigate('Login'); }}
               activeOpacity={0.8}
             >
-               <Ionicons name={user ? "log-out-outline" : "log-in-outline"} size={22} color="white" style={{ marginRight: 10 }} />
-               <Text style={styles.logoutText}>{user ? "LOGOUT" : "LOGIN"}</Text>
+              <Ionicons name={user ? 'log-out-outline' : 'log-in-outline'} size={20} color={Colors.foreground} style={{ marginRight: 10 }} />
+              <Text style={styles.logoutText}>{user ? 'LOGOUT' : 'LOGIN'}</Text>
             </TouchableOpacity>
-            
+
             <View style={styles.portalBrandingFooter}>
-                 {/* subtle bottom divider */}
-                 <View style={styles.footerDivider} />
-                 <Text style={styles.portalFooterText}>TUPT THESIS ARCHIVE</Text>
+              <View style={styles.footerDivider} />
+              <Text style={styles.portalFooterText}>TUPT THESIS ARCHIVE</Text>
             </View>
           </View>
-
         </LinearGradient>
       </Animated.View>
     </>
@@ -315,14 +227,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     zIndex: 999,
   },
   menuContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: width * 0.82, // Standard sidebar width
+    width: width * 0.82,
     height: '100%',
     zIndex: 1000,
   },
@@ -334,7 +246,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: Colors.border,
   },
   userSection: {
     alignItems: 'center',
@@ -345,8 +257,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     padding: 2,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 24, // Slight squircle shape per screenshot
+    borderColor: Colors.primary,
+    borderRadius: 24,
   },
   userAvatar: {
     width: 90,
@@ -354,45 +266,49 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1f2937', 
+  },
+  avatarPlaceholder: {
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editIconContainer: {
     position: 'absolute',
     bottom: -5,
     right: -5,
-    backgroundColor: '#b91c1c', // deep red
-    width: 32,
-    height: 32,
+    backgroundColor: Colors.primary,
+    width: 30,
+    height: 30,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#7f0000', // matches bg to blend
+    borderColor: Colors.surface,
   },
   userName: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#fff',
-    marginBottom: 12,
+    color: Colors.foreground,
+    marginBottom: 10,
   },
   userIdBadge: {
-    backgroundColor: 'rgba(127, 29, 29, 0.6)', // transparent dark red inner pill
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: `${Colors.primary}15`,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: `${Colors.primary}30`,
   },
   userIdText: {
-    fontSize: 12,
-    color: '#fca5a5',
+    fontSize: 11,
+    color: Colors.primary,
     fontWeight: 'bold',
     letterSpacing: 2,
   },
   portalSubtitle: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 9,
+    color: Colors.textDim,
     fontWeight: '900',
     letterSpacing: 2,
   },
@@ -409,79 +325,79 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: Colors.border,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   menuIconContainer: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    backgroundColor: 'rgba(127, 29, 29, 0.4)', // Darker translucent red box
+    backgroundColor: `${Colors.primary}12`,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 20,
+    marginRight: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: `${Colors.primary}25`,
   },
   menuItemLabel: {
-    fontSize: 14,
-    color: '#fff',
+    fontSize: 13,
+    color: Colors.foreground,
     fontWeight: '900',
     letterSpacing: 1,
   },
   chevronIcon: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   bottomSection: {
     paddingHorizontal: 24,
     paddingBottom: Platform.OS === 'ios' ? 40 : 30,
     paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopColor: Colors.border,
     alignItems: 'center',
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(127, 29, 29, 0.4)',
-    paddingVertical: 18,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingVertical: 16,
     paddingHorizontal: 24,
     width: '100%',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(153, 27, 27, 0.5)',
+    borderColor: Colors.border,
     marginBottom: 24,
   },
   logoutText: {
-    color: '#fff',
-    fontSize: 14,
+    color: Colors.foreground,
+    fontSize: 13,
     fontWeight: '900',
     letterSpacing: 2,
   },
   portalBrandingFooter: {
-      alignItems: 'center',
-      width: '100%'
+    alignItems: 'center',
+    width: '100%',
   },
   footerDivider: {
-      width: 40,
-      height: 2,
-      backgroundColor: 'rgba(255,255,255,0.1)',
-      marginBottom: 16,
-      borderRadius: 1
+    width: 40,
+    height: 2,
+    backgroundColor: Colors.border,
+    marginBottom: 12,
+    borderRadius: 1,
   },
   portalFooterText: {
-      fontSize: 10,
-      color: 'rgba(255,255,255,0.3)',
-      fontWeight: '900',
-      letterSpacing: 4,
-  }
+    fontSize: 9,
+    color: Colors.textDim,
+    fontWeight: '900',
+    letterSpacing: 4,
+  },
 });
 
 export default HamburgerMenu;

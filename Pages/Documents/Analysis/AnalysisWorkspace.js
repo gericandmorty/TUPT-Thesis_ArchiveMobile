@@ -10,6 +10,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Colors from '../../../utils/Colors';
 import CustomHeader from '../../Navigation/CustomHeader';
 import HamburgerMenu from '../../Navigation/HamburgerMenu';
 import API_BASE_URL from '../../../api';
@@ -262,7 +263,7 @@ const AnalysisWorkspace = () => {
     // ---- RENDER ----
 
     return (
-        <LinearGradient colors={['#7f0000', '#240000']} style={styles.container}>
+        <LinearGradient colors={[Colors.background, Colors.surface, Colors.background]} style={styles.container}>
             <CustomHeader
                 onMenuPress={() => setIsMenuVisible(true)}
                 onSearch={handleSearch}

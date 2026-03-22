@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Colors from '../../utils/Colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -215,14 +216,14 @@ const styles = StyleSheet.create({
     top: 48,
     left: 0,
     right: 0,
-    backgroundColor: 'white',
+    backgroundColor: Colors.card,
     borderRadius: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
     ...Platform.select({
-        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
-        android: { elevation: 5 }
+        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+        android: { elevation: 8 }
     }),
     zIndex: 1000,
   },
@@ -235,7 +236,7 @@ const styles = StyleSheet.create({
   historyText: {
     flex: 1,
     fontSize: 14,
-    color: '#374151',
+    color: Colors.textSecondary,
   },
 });
 

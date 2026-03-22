@@ -10,14 +10,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomHeader from '../../Navigation/CustomHeader';
 import HamburgerMenu from '../../Navigation/HamburgerMenu';
 import API_BASE_URL from '../../../api';
+import Colors from '../../../utils/Colors';
 
-const CATEGORIES = [
-    'Computer Science',
-    'Information Technology',
-    'Engineering',
-    'Education',
-    'Arts & Sciences',
-    'Other',
+const COURSES = [
+    'BENG',
+    'BET',
+    'BETEM',
+    'BETICT',
+    'BETMC',
+    'BETMT',
+    'BETNT',
+    'BSCE',
+    'BSECE',
+    'BSEE',
+    'BSES',
+    'BSIT',
+    'BSME',
+    'BTAU',
+    'BTTE',
+    'BTVED',
+    'BTVTED',
 ];
 
 const SubmitThesis = () => {
@@ -25,14 +37,14 @@ const SubmitThesis = () => {
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+    const [showCoursePicker, setShowCoursePicker] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
         abstract: '',
         author: '',
         year_range: '',
-        category: '',
+        course: '',
     });
 
     const updateField = (field, value) => {
@@ -40,8 +52,8 @@ const SubmitThesis = () => {
     };
 
     const handleSubmit = async () => {
-        const { title, abstract, author, year_range, category } = formData;
-        if (!title || !abstract || !author || !year_range || !category) {
+        const { title, abstract, author, year_range, course } = formData;
+        if (!title || !abstract || !author || !year_range || !course) {
             return Alert.alert('Incomplete', 'Please fill in all fields before submitting.');
         }
 
@@ -80,7 +92,7 @@ const SubmitThesis = () => {
     };
 
     return (
-        <LinearGradient colors={['#7f0000', '#240000']} style={styles.container}>
+        <LinearGradient colors={[Colors.background, Colors.surface, Colors.background]} style={styles.container}>
             <CustomHeader
                 onMenuPress={() => setIsMenuVisible(true)}
                 onSearch={handleSearch}
@@ -140,14 +152,14 @@ const SubmitThesis = () => {
                             />
                         </View>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.fieldLabel}>CATEGORY</Text>
+                            <Text style={styles.fieldLabel}>DEPARTMENT</Text>
                             <TouchableOpacity
                                 style={styles.dropdownBtn}
-                                onPress={() => setShowCategoryPicker(true)}
+                                onPress={() => setShowCoursePicker(true)}
                                 activeOpacity={0.7}
                             >
-                                <Text style={[styles.dropdownBtnText, !formData.category && { color: '#9ca3af' }]}>
-                                    {formData.category || 'Select Domain'}
+                                <Text style={[styles.dropdownBtnText, !formData.course && { color: '#9ca3af' }]}>
+                                    {formData.course || 'Select Department'}
                                 </Text>
                                 <Ionicons name="chevron-down" size={16} color="#6b7280" />
                             </TouchableOpacity>
@@ -192,23 +204,23 @@ const SubmitThesis = () => {
                 </View>
             </ScrollView>
 
-            {/* Category Picker Modal */}
-            <Modal visible={showCategoryPicker} transparent animationType="fade">
+            {/* Course Picker Modal */}
+            <Modal visible={showCoursePicker} transparent animationType="fade">
                 <TouchableOpacity
                     style={styles.modalOverlay}
                     activeOpacity={1}
-                    onPress={() => setShowCategoryPicker(false)}
+                    onPress={() => setShowCoursePicker(false)}
                 >
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Select Category</Text>
-                        {CATEGORIES.map((cat) => (
+                        <Text style={styles.modalTitle}>Select Course</Text>
+                        {COURSES.map((course) => (
                             <TouchableOpacity
-                                key={cat}
-                                style={[styles.modalItem, formData.category === cat && styles.modalItemActive]}
-                                onPress={() => { updateField('category', cat); setShowCategoryPicker(false); }}
+                                key={course}
+                                style={[styles.modalItem, formData.course === course && styles.modalItemActive]}
+                                onPress={() => { updateField('course', course); setShowCoursePicker(false); }}
                             >
-                                <Text style={[styles.modalItemText, formData.category === cat && styles.modalItemTextActive]}>{cat}</Text>
-                                {formData.category === cat && <Ionicons name="checkmark" size={18} color="#7f0000" />}
+                                <Text style={[styles.modalItemText, formData.course === course && styles.modalItemTextActive]}>{course}</Text>
+                                {formData.course === course && <Ionicons name="checkmark" size={18} color="#7f0000" />}
                             </TouchableOpacity>
                         ))}
                     </View>

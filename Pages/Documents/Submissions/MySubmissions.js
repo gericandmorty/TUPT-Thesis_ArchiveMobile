@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomHeader from '../../Navigation/CustomHeader';
 import HamburgerMenu from '../../Navigation/HamburgerMenu';
 import API_BASE_URL from '../../../api';
+import Colors from '../../../utils/Colors';
 
 const MySubmissions = () => {
     const navigation = useNavigation();
@@ -51,7 +52,7 @@ const MySubmissions = () => {
     };
 
     return (
-        <LinearGradient colors={['#7f0000', '#240000']} style={styles.container}>
+        <LinearGradient colors={[Colors.background, Colors.surface, Colors.background]} style={styles.container}>
             <CustomHeader
                 onMenuPress={() => setIsMenuVisible(true)}
                 onSearch={handleSearch}
@@ -64,11 +65,11 @@ const MySubmissions = () => {
                 style={styles.scroll}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchTheses(); }} tintColor="#fca5a5" />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchTheses(); }} tintColor={Colors.primary} />}
             >
                 {/* Back Button */}
                 <TouchableOpacity style={styles.backRow} onPress={() => navigation.navigate('DocumentsHub')}>
-                    <Ionicons name="arrow-back" size={16} color="#fca5a5" />
+                    <Ionicons name="arrow-back" size={16} color={Colors.primary} />
                     <Text style={styles.backText}>Back to Documents</Text>
                 </TouchableOpacity>
 
@@ -88,7 +89,7 @@ const MySubmissions = () => {
 
                 {isLoading ? (
                     <View style={styles.loadingBox}>
-                        <ActivityIndicator size="large" color="#fca5a5" />
+                        <ActivityIndicator size="large" color={Colors.primary} />
                     </View>
                 ) : theses.length > 0 ? (
                     theses.map((thesis) => (
@@ -96,7 +97,7 @@ const MySubmissions = () => {
                             {/* Category + Status */}
                             <View style={styles.cardTopRow}>
                                 <View style={styles.categoryPill}>
-                                    <Text style={styles.categoryPillText}>{thesis.category || 'General'}</Text>
+                                    <Text style={styles.categoryPillText}>{thesis.course || 'General'}</Text>
                                 </View>
                                 <View style={[styles.statusPill, thesis.isApproved ? styles.statusApproved : styles.statusPending]}>
                                     <Text style={[styles.statusPillText, thesis.isApproved ? styles.statusApprovedText : styles.statusPendingText]}>
@@ -124,7 +125,7 @@ const MySubmissions = () => {
                                     <Text style={[styles.viewBtnText, !thesis.isApproved && styles.viewBtnDisabled]}>
                                         {thesis.isApproved ? 'View' : 'Pending'}
                                     </Text>
-                                    <Ionicons name="arrow-forward" size={12} color={thesis.isApproved ? '#111827' : '#d1d5db'} />
+                                    <Ionicons name="arrow-forward" size={12} color={thesis.isApproved ? Colors.primary : Colors.textDim} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -148,57 +149,59 @@ const styles = StyleSheet.create({
     scroll: { flex: 1 },
     scrollContent: { paddingTop: 20, paddingBottom: 60, paddingHorizontal: 20 },
     backRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
-    backText: { color: '#fca5a5', fontSize: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
+    backText: { color: Colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
 
     // Header
     headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    headerBar: { width: 4, height: 40, borderRadius: 2, backgroundColor: '#7f0000' },
-    headerTag: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.5)', letterSpacing: 2 },
-    headerTitle: { fontSize: 22, fontWeight: '900', color: '#fff', textTransform: 'uppercase' },
-    countBadge: { backgroundColor: 'rgba(254,242,242,0.9)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#fecaca' },
-    countBadgeText: { fontSize: 9, fontWeight: '900', color: '#7f0000', letterSpacing: 1 },
+    headerBar: { width: 4, height: 40, borderRadius: 2, backgroundColor: Colors.primary },
+    headerTag: { fontSize: 10, fontWeight: '900', color: Colors.textSecondary, letterSpacing: 2 },
+    headerTitle: { fontSize: 22, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase' },
+    countBadge: { backgroundColor: `${Colors.primary}15`, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: `${Colors.primary}30` },
+    countBadgeText: { fontSize: 9, fontWeight: '900', color: Colors.primary, letterSpacing: 1 },
 
     loadingBox: { paddingVertical: 60, alignItems: 'center' },
 
     // Cards
     thesisCard: {
-        backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 16,
+        backgroundColor: Colors.card, borderRadius: 24, padding: 20, marginBottom: 16,
+        borderWidth: 1, borderColor: Colors.border,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
-            android: { elevation: 4 }
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12 },
+            android: { elevation: 6 }
         }),
     },
     cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    categoryPill: { backgroundColor: '#fef2f2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#fecaca' },
-    categoryPillText: { fontSize: 9, fontWeight: '900', color: '#dc2626', letterSpacing: 1 },
+    categoryPill: { backgroundColor: `${Colors.primary}15`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: `${Colors.primary}30` },
+    categoryPillText: { fontSize: 9, fontWeight: '900', color: Colors.primary, letterSpacing: 1 },
     statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
-    statusApproved: { backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' },
-    statusPending: { backgroundColor: '#fffbeb', borderColor: '#fde68a' },
+    statusApproved: { backgroundColor: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)' },
+    statusPending: { backgroundColor: 'rgba(251,191,36,0.1)', borderColor: 'rgba(251,191,36,0.3)' },
     statusPillText: { fontSize: 8, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
-    statusApprovedText: { color: '#16a34a' },
-    statusPendingText: { color: '#d97706' },
+    statusApprovedText: { color: '#4ade80' },
+    statusPendingText: { color: '#fbbf24' },
 
-    thesisTitle: { fontSize: 16, fontWeight: '900', color: '#111827', textTransform: 'uppercase', lineHeight: 22, marginBottom: 6 },
-    thesisAuthor: { fontSize: 10, fontWeight: 'bold', color: '#6b7280', letterSpacing: 1, marginBottom: 16 },
+    thesisTitle: { fontSize: 15, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', lineHeight: 22, marginBottom: 6 },
+    thesisAuthor: { fontSize: 10, fontWeight: 'bold', color: Colors.textSecondary, letterSpacing: 1, marginBottom: 16 },
 
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 16 },
-    docIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#f9fafb', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f3f4f6' },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 16 },
+    docIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
     viewBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    viewBtnText: { fontSize: 10, fontWeight: '900', color: '#111827', letterSpacing: 1, textTransform: 'uppercase' },
-    viewBtnDisabled: { color: '#d1d5db' },
+    viewBtnText: { fontSize: 10, fontWeight: '900', color: Colors.primary, letterSpacing: 1, textTransform: 'uppercase' },
+    viewBtnDisabled: { color: Colors.textDim },
 
     // Empty
     emptyCard: {
-        backgroundColor: '#fff', borderRadius: 28, padding: 40, alignItems: 'center',
+        backgroundColor: Colors.card, borderRadius: 28, padding: 40, alignItems: 'center',
+        borderWidth: 1, borderColor: Colors.border,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10 },
-            android: { elevation: 4 }
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12 },
+            android: { elevation: 6 }
         }),
     },
-    emptyIconBox: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#f9fafb', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6' },
-    emptyTitle: { fontSize: 16, fontWeight: '900', color: '#111827', textTransform: 'uppercase', marginBottom: 4 },
-    emptyDesc: { fontSize: 12, color: '#6b7280', textAlign: 'center' },
+    emptyIconBox: { width: 64, height: 64, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: Colors.border },
+    emptyTitle: { fontSize: 15, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', marginBottom: 4 },
+    emptyDesc: { fontSize: 12, color: Colors.textSecondary, textAlign: 'center' },
 });
 
 export default MySubmissions;

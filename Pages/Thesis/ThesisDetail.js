@@ -10,12 +10,15 @@ import {
   Platform,
   Image,
   Dimensions,
+  Modal,
 } from 'react-native';
+import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '../../api';
+import Colors from '../../utils/Colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DOC_WIDTH = 600; // Logical width of the document
@@ -29,6 +32,9 @@ const ThesisDetailScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isLoadingLocal, setIsLoadingLocal] = useState(false);
+  const [localComparison, setLocalComparison] = useState(null);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Calculate scaling to fit screen
@@ -49,7 +55,7 @@ const ThesisDetailScreen = () => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const response = await fetch(`${API_BASE_URL}/thesis/${thesisId}`, { headers });
+      const response = await fetch(`${API_BASE_URL}/thesis/find-one/${thesisId}`, { headers });
       const data = await response.json();
 
       if (response.ok) {
@@ -96,6 +102,40 @@ const ThesisDetailScreen = () => {
     }
   };
 
+  const handleCompareLocal = async () => {
+    if (!thesis || !thesis.title) return;
+    
+    setIsLoadingLocal(true);
+    setIsComparisonModalOpen(true);
+    setLocalComparison(null);
+
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const response = await fetch(`${API_BASE_URL}/thesis/compare-local`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title: thesis.title })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setLocalComparison(data);
+      } else {
+        alert(data.message || 'Failed to check similarity');
+        setIsComparisonModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Local Comparison error:', error);
+      alert('Network error while checking similarity.');
+      setIsComparisonModalOpen(false);
+    } finally {
+      setIsLoadingLocal(false);
+    }
+  };
+
   const extractAuthors = (t) => {
     if (!t) return 'Unknown Author';
     if (t.author) return t.author;
@@ -109,8 +149,8 @@ const ThesisDetailScreen = () => {
 
   if (isLoading) {
       return (
-          <View style={[styles.container, styles.centerAll]}>
-             <ActivityIndicator size="large" color="#c7242c" />
+          <View style={[styles.container, styles.centerAll, { backgroundColor: Colors.background }]}>
+             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
       )
   }
@@ -132,25 +172,38 @@ const ThesisDetailScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.headerBackBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#1f2937" />
+          <Ionicons name="arrow-back" size={24} color={Colors.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Document Viewer</Text>
-        <TouchableOpacity style={styles.zoomToggle} onPress={toggleZoom}>
-          <Ionicons name={isZoomed ? "contract" : "expand"} size={22} color="#1f2937" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 15 }}>
+          <TouchableOpacity onPress={handleCompareLocal}>
+            <Ionicons name="shield-checkmark-outline" size={22} color={Colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.zoomToggle} onPress={toggleZoom}>
+            <Ionicons name={isZoomed ? "contract" : "expand"} size={22} color={Colors.foreground} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <LinearGradient colors={['#f3f4f6', '#e5e7eb']} style={styles.gradientBackground}>
+      <LinearGradient colors={[Colors.background, Colors.surface]} style={styles.gradientBackground}>
         <ScrollView 
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           maximumZoomScale={2}
           minimumZoomScale={0.5}
           contentContainerStyle={[
-            styles.scrollContent, 
-            isZoomed && { width: DOC_WIDTH + 40 }
+            styles.scrollContent,
+            { width: isZoomed ? DOC_WIDTH + 60 : SCREEN_WIDTH }
           ]}
         >
+          <IntelligenceModal 
+            visible={isComparisonModalOpen}
+            onClose={() => setIsComparisonModalOpen(false)}
+            isLoading={isLoadingLocal}
+            data={localComparison}
+            type="similarity"
+          />
+
           <Animated.View style={{ 
             opacity: fadeAnim, 
             alignItems: 'center',
@@ -209,7 +262,7 @@ const ThesisDetailScreen = () => {
                         <View style={styles.extractDivider} />
                     </View>
                     <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryText}>{thesis.category || 'Information Technology Department'}</Text>
+                        <Text style={styles.categoryText}>{thesis.course || 'Information Technology Department'}</Text>
                     </View>
                 </View>
 
@@ -258,9 +311,8 @@ const ThesisDetailScreen = () => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: Colors.background },
   centerAll: { justifyContent: 'center', alignItems: 'center', padding: 20 },
   header: {
     flexDirection: 'row',
@@ -269,24 +321,23 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: Colors.border,
     zIndex: 10,
   },
   headerBackBtn: { padding: 5, marginLeft: -5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.foreground },
   zoomToggle: { padding: 5, marginRight: -5 },
   gradientBackground: { flex: 1 },
   scrollContent: { paddingVertical: 30, paddingHorizontal: 15, alignItems: 'center' },
-  errorText: { color: '#374151', fontSize: 16, fontWeight: 'bold', marginBottom: 20 },
-  backBtn: { backgroundColor: '#c7242c', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
-  backBtnText: { color: '#fff', fontWeight: 'bold' },
+  errorText: { color: Colors.foreground, fontSize: 16, fontWeight: 'bold', marginBottom: 20 },
+  backBtn: { backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+  backBtnText: { color: Colors.background, fontWeight: 'bold' },
   
   // Paper styles
   paperCard: {
-      backgroundColor: '#fff',
-      // width: DOC_WIDTH is handled in the render
+      backgroundColor: '#fcfcfa', // Keep paper white-ish for readability but with premium feel
       minHeight: 800,
       borderRadius: 4,
       padding: 30,
@@ -336,44 +387,163 @@ const styles = StyleSheet.create({
   letterheadTitle: { fontSize: 10, fontWeight: '900', color: '#111827', textTransform: 'uppercase', letterSpacing: 1.5, textAlign: 'center' },
   letterheadSubtitle: { fontSize: 9, fontWeight: 'bold', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 },
   letterheadDivider: { width: 60, height: 2, backgroundColor: '#111827', marginVertical: 12 },
-  letterheadFooter: { fontSize: 7, fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, textAlign: 'center' },
+  letterheadFooter: { fontSize: 8, fontWeight: '800', color: '#888', textTransform: 'uppercase', letterSpacing: 3, textAlign: 'center' },
+  
   archiveStamp: {
       position: 'absolute',
-      right: -10,
+      right: -20,
       top: 10,
-      borderWidth: 2,
-      borderColor: '#b91c1c',
-      paddingHorizontal: 8,
+      borderWidth: 3,
+      borderColor: 'rgba(185, 28, 28, 0.2)',
+      paddingHorizontal: 12,
       paddingVertical: 4,
-      borderRadius: 6,
-      transform: [{ rotate: '15deg' }],
-      opacity: 0.2
+      transform: [{ rotate: '15deg' }]
   },
-  archiveStampText: { color: '#b91c1c', fontSize: 16, fontWeight: '900', letterSpacing: 2 },
-  metadataRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 40, zIndex: 1 },
+  archiveStampText: {
+      color: 'rgba(185, 28, 28, 0.2)',
+      fontSize: 18,
+      fontWeight: '900',
+      textTransform: 'uppercase',
+      letterSpacing: 4,
+      fontStyle: 'italic'
+  },
+  
+  metadataRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(17, 24, 39, 0.1)',
+      paddingBottom: 15,
+      marginBottom: 30
+  },
   metaCol: { flex: 1 },
-  metaLabel: { fontSize: 8, fontWeight: '900', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
-  metaValue: { fontSize: 11, fontWeight: 'bold', color: '#111827', borderBottomWidth: 1, borderBottomColor: '#e5e7eb', paddingBottom: 2 },
-  titleSection: { alignItems: 'center', marginBottom: 40, zIndex: 1 },
-  thesisTitleMain: { fontSize: 24, fontWeight: '900', color: '#111827', textAlign: 'center', textTransform: 'uppercase', lineHeight: 32, marginBottom: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  extractBadgeContainer: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: 15 },
-  extractDivider: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
-  extractText: { fontSize: 9, fontWeight: '900', color: '#9ca3af', paddingHorizontal: 12, textTransform: 'uppercase', letterSpacing: 1.5 },
-  categoryBadge: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#f3f4f6', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 8 },
-  categoryText: { fontSize: 9, fontWeight: '900', color: '#111827', textTransform: 'uppercase', letterSpacing: 1 },
-  sectionDividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, zIndex: 1 },
-  sectionDividerText: { fontSize: 9, fontWeight: '900', color: '#9ca3af', letterSpacing: 2, marginRight: 12 },
-  sectionDividerLine: { flex: 1, height: 1, backgroundColor: '#f3f4f6' },
-  authorSection: { alignItems: 'center', marginBottom: 40, zIndex: 1 },
-  authorText: { fontSize: 18, fontWeight: 'bold', color: '#111827', textAlign: 'center', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontStyle: 'italic', marginBottom: 10 },
-  facultyText: { fontSize: 8, fontWeight: '900', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1, fontStyle: 'italic' },
-  abstractSection: { marginBottom: 60, zIndex: 1 },
-  paragraphContainer: { marginBottom: 15 },
-  abstractText: { fontSize: 13, color: '#374151', lineHeight: 24, textAlign: 'justify', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  dropCap: { fontSize: 36, fontWeight: '900', color: '#111827', lineHeight: 36 },
   securityMark: { position: 'absolute', bottom: 20, left: 0, right: 0, alignItems: 'center', opacity: 0.3 },
   securityDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#111827', marginBottom: 4 },
   securityText: { fontSize: 6, fontWeight: '900', color: '#111827', letterSpacing: 2 },
 });
+
+// Define ComparisonModal locally
+const modalStyles = StyleSheet.create({
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+    modalContainer: { 
+        backgroundColor: Colors.surface, 
+        borderTopLeftRadius: 30, 
+        borderTopRightRadius: 30, 
+        borderTopWidth: 1,
+        borderColor: Colors.border,
+        maxHeight: '92%' 
+    },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: Colors.border },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: Colors.foreground },
+    closeBtn: { padding: 5 },
+    modalContent: { paddingHorizontal: 25 },
+    modalFooter: { 
+        flexDirection: 'row', 
+        paddingHorizontal: 25, 
+        gap: 12, 
+        paddingTop: 15, 
+        paddingBottom: Platform.OS === 'ios' ? 45 : 25,
+        backgroundColor: Colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: Colors.border,
+    },
+    applyBtn: { backgroundColor: Colors.primary, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
+    applyBtnText: { color: Colors.background, fontWeight: 'bold' },
+});
+
+const IntelligenceModal = ({ visible, onClose, isLoading, data, type }) => {
+  const isSimilarity = type === 'similarity';
+  
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={modalStyles.modalOverlay}>
+        <View style={[modalStyles.modalContainer, { minHeight: 450 }]}>
+          <View style={modalStyles.modalHeader}>
+            <View>
+              <Text style={modalStyles.modalTitle}>
+                {isSimilarity ? 'Similarity Check' : 'AI Recommendation'}
+              </Text>
+              <Text style={{ fontSize: 10, color: Colors.primary, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
+                {isSimilarity ? 'Searching library databases' : 'Generating creative insights'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
+              <Ionicons name="close" size={24} color={Colors.foreground} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={modalStyles.modalContent} showsVerticalScrollIndicator={false}>
+            {isLoading ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <Text style={{ marginBottom: 10, color: Colors.textSecondary, fontWeight: 'bold', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}>
+                   {isSimilarity ? 'Searching for matches...' : 'Generating suggestions...'}
+                </Text>
+                <LottieView 
+                  source={require('../../assets/animations/Ai Loading Thinking.json')}
+                  autoPlay
+                  loop
+                  style={{ width: 180, height: 180 }}
+                />
+                <Text style={{ marginTop: -10, color: Colors.textDim, fontSize: 11, textAlign: 'center' }}>Please wait a moment</Text>
+              </View>
+            ) : data ? (
+              <View style={{ paddingVertical: 20 }}>
+                {isSimilarity ? (
+                  <>
+                    <View style={{ alignItems: 'center', marginBottom: 30 }}>
+                      <View style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 8, borderColor: `${Colors.primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 32, fontWeight: '900', color: Colors.primary }}>{Math.round(data.similarity)}%</Text>
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: Colors.textSecondary, textTransform: 'uppercase' }}>Similarity</Text>
+                      </View>
+                    </View>
+                    {data.match && (
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, marginBottom: 25 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 }}>
+                          <Ionicons name="alert-circle" size={20} color={Colors.primary} />
+                          <Text style={{ fontSize: 13, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', letterSpacing: 1 }}>Top Conflict Detected</Text>
+                        </View>
+                        <Text style={{ fontSize: 14, color: Colors.textSecondary, fontWeight: 'bold', fontStyle: 'italic', lineHeight: 20 }}>"{data.match.title}"</Text>
+                      </View>
+                    )}
+                    <View style={{ marginBottom: 30 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 }}>
+                        <Ionicons name="bulb-outline" size={20} color={Colors.primary} />
+                        <Text style={{ fontSize: 13, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', letterSpacing: 1 }}>Strategic Recommendation</Text>
+                      </View>
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                        <Text style={{ fontSize: 14, color: Colors.textSecondary, lineHeight: 24 }}>{data.recommendation}</Text>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <View style={{ marginBottom: 30 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 }}>
+                      <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                      <Text style={{ fontSize: 13, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', letterSpacing: 1 }}>Optimized Recommendations</Text>
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                      <Text style={{ fontSize: 14, color: Colors.textSecondary, lineHeight: 24 }}>{data}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            ) : null}
+          </ScrollView>
+          {!isLoading && data && (
+            <View style={modalStyles.modalFooter}>
+              <TouchableOpacity style={[modalStyles.applyBtn, { flex: 1, backgroundColor: Colors.primary }]} onPress={onClose}>
+                <Text style={modalStyles.applyBtnText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 export default ThesisDetailScreen;

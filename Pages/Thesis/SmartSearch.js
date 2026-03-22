@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '../../api';
+import Colors from '../../utils/Colors';
 
 const SmartSearchScreen = () => {
   const navigation = useNavigation();
@@ -122,13 +123,13 @@ const SmartSearchScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#1f2937" />
+          <Ionicons name="arrow-back" size={24} color={Colors.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Smart Search</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <LinearGradient colors={['#fef2f2', '#fee2e2', '#fecaca']} style={styles.gradientBackground}>
+      <LinearGradient colors={[Colors.background, Colors.surface]} style={styles.gradientBackground}>
         {/* Search Input Area */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputWrapper}>
@@ -161,7 +162,7 @@ const SmartSearchScreen = () => {
               <View style={styles.aiPanel}>
                 <View style={styles.aiHeader}>
                   <View style={styles.aiIconContainer}>
-                    <Ionicons name="hardware-chip" size={22} color="#ef4444" />
+                    <Ionicons name="hardware-chip" size={22} color={Colors.primary} />
                   </View>
                   <View style={styles.aiHeaderTextContainer}>
                      <Text style={styles.aiTitle}>AI Title Recommendation</Text>
@@ -203,7 +204,7 @@ const SmartSearchScreen = () => {
             {/* Loading Indicator */}
             {isLoading ? (
                <View style={styles.loadingContainer}>
-                   <ActivityIndicator size="large" color="#c7242c" />
+                   <ActivityIndicator size="large" color={Colors.primary} />
                    <Text style={styles.loadingText}>Searching theses...</Text>
                </View>
             ) : (
@@ -256,7 +257,7 @@ const SmartSearchScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,74 +265,80 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: Colors.border,
   },
   backButton: { padding: 5, marginLeft: -5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.foreground },
   gradientBackground: { flex: 1 },
   searchContainer: { padding: 20 },
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: Colors.card,
     borderRadius: 16,
     paddingHorizontal: 15,
     height: 50,
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Platform.select({
-        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-        android: { elevation: 3 }
+        ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 },
+        android: { elevation: 4 }
     })
   },
   searchIcon: { marginRight: 10 },
-  searchInput: { flex: 1, fontSize: 16, color: '#1f2937' },
+  searchInput: { flex: 1, fontSize: 16, color: Colors.foreground },
   clearIcon: { padding: 5 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   aiPanel: {
-      backgroundColor: '#fff',
+      backgroundColor: Colors.card,
       borderRadius: 20,
       padding: 20,
       marginBottom: 20,
+      borderWidth: 1,
+      borderColor: Colors.border,
       ...Platform.select({
-          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
+          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
           android: { elevation: 5 }
       })
   },
   aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-  aiIconContainer: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  aiIconContainer: { width: 40, height: 40, borderRadius: 12, backgroundColor: `${Colors.primary}15`, borderWidth: 1, borderColor: `${Colors.primary}30`, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   aiHeaderTextContainer: { flex: 1 },
-  aiTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginBottom: 2 },
-  aiSubtitle: { fontSize: 12, color: '#6b7280' },
-  aiButton: { flexDirection: 'row', backgroundColor: '#c7242c', borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  aiButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  aiResultContainer: { backgroundColor: '#f9fafb', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#f3f4f6' },
-  aiResultText: { fontSize: 14, color: '#374151', lineHeight: 22 },
-  errorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', padding: 15, borderRadius: 12, marginBottom: 20 },
-  errorText: { color: '#ef4444', marginLeft: 10, flex: 1 },
+  aiTitle: { fontSize: 15, fontWeight: 'bold', color: Colors.foreground, marginBottom: 2 },
+  aiSubtitle: { fontSize: 12, color: Colors.textSecondary },
+  aiButton: { flexDirection: 'row', backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  aiButtonText: { color: Colors.background, fontWeight: 'bold', fontSize: 14 },
+  aiResultContainer: { backgroundColor: 'rgba(255,255,255,0.04)', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: Colors.border },
+  aiResultText: { fontSize: 14, color: Colors.textSecondary, lineHeight: 22 },
+  errorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239,68,68,0.1)', padding: 15, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' },
+  errorText: { color: '#f87171', marginLeft: 10, flex: 1 },
   loadingContainer: { alignItems: 'center', paddingVertical: 40 },
-  loadingText: { marginTop: 15, color: '#6b7280', fontWeight: '600' },
+  loadingText: { marginTop: 15, color: Colors.textSecondary, fontWeight: '600' },
   resultsContainer: { gap: 15 },
   thesisCard: {
-      backgroundColor: '#fff',
+      backgroundColor: Colors.card,
       borderRadius: 16,
       padding: 20,
+      borderWidth: 1,
+      borderColor: Colors.border,
       ...Platform.select({
-          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
-          android: { elevation: 3 }
+          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6 },
+          android: { elevation: 4 }
       })
   },
   thesisCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  yearBadge: { backgroundColor: '#fef2f2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: '#fecaca' },
-  yearText: { color: '#dc2626', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
-  thesisTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginBottom: 8, lineHeight: 22 },
-  thesisAbstract: { fontSize: 13, color: '#6b7280', lineHeight: 18, marginBottom: 15 },
+  yearBadge: { backgroundColor: `${Colors.primary}15`, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: `${Colors.primary}30` },
+  yearText: { color: Colors.primary, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
+  thesisTitle: { fontSize: 15, fontWeight: 'bold', color: Colors.foreground, marginBottom: 8, lineHeight: 22 },
+  thesisAbstract: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 15 },
   thesisFooter: { flexDirection: 'row', alignItems: 'center' },
-  thesisId: { fontSize: 11, fontWeight: 'bold', color: '#9ca3af', marginLeft: 6, textTransform: 'uppercase', letterSpacing: 1 },
+  thesisId: { fontSize: 11, fontWeight: 'bold', color: Colors.textDim, marginLeft: 6, textTransform: 'uppercase', letterSpacing: 1 },
   emptyContainer: { alignItems: 'center', paddingVertical: 50 },
-  emptyIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
-  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: '#374151', marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: '#9ca3af' }
+  emptyIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', marginBottom: 15, borderWidth: 1, borderColor: Colors.border },
+  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: Colors.foreground, marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, color: Colors.textSecondary }
 });
 
 export default SmartSearchScreen;

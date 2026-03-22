@@ -8,13 +8,18 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  SafeAreaView,
+  Modal,
 } from 'react-native';
+import LottieView from 'lottie-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import API_BASE_URL from '../../api';
 import { useToast } from '../../utils/ToastContext';
+import Colors from '../../utils/Colors';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -23,33 +28,25 @@ const LoginScreen = () => {
   const [birthdate, setBirthdate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
   const handleInputChange = (value) => {
     let formattedValue = value.toUpperCase();
-    
-    // Formatting logic to allow backspacing without fighting the cursor
     if (formattedValue.length < idNumber.length) {
-        setIdNumber(formattedValue);
-        return;
+      setIdNumber(formattedValue);
+      return;
     }
-
     let clean = formattedValue.replace(/[^A-Z0-9]/g, '');
     if (clean.length > 0 && !clean.startsWith('TUPT')) {
       if (!'TUPT'.startsWith(clean)) {
         clean = 'TUPT' + clean;
       }
     }
-    
     let result = clean;
-    if (clean.length > 4) {
-      result = clean.slice(0, 4) + '-' + clean.slice(4);
-    }
-    if (result.length > 7) {
-      result = result.slice(0, 7) + '-' + result.slice(7, 11);
-    }
-    
+    if (clean.length > 4) result = clean.slice(0, 4) + '-' + clean.slice(4);
+    if (result.length > 7) result = result.slice(0, 7) + '-' + result.slice(7, 11);
     setIdNumber(result.slice(0, 12));
   };
 
@@ -59,27 +56,17 @@ const LoginScreen = () => {
   };
 
   const handleDateChange = (event, date) => {
-      setShowDatePicker(Platform.OS === 'ios');
-      if (date) {
-          setSelectedDate(date);
-          if (Platform.OS !== 'ios') {
-              setShowDatePicker(false);
-          }
-
-          // Use local date to avoid timezone shift from toISOString()
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          const formattedDate = `${year}-${month}-${day}`;
-
-          setBirthdate(formattedDate);
-      } else {
-          setShowDatePicker(false);
-      }
-  };
-
-  const showDatepicker = () => {
-      setShowDatePicker(true);
+    setShowDatePicker(Platform.OS === 'ios');
+    if (date) {
+      setSelectedDate(date);
+      if (Platform.OS !== 'ios') setShowDatePicker(false);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      setBirthdate(`${year}-${month}-${day}`);
+    } else {
+      setShowDatePicker(false);
+    }
   };
 
   const handleLogin = async () => {
@@ -87,315 +74,310 @@ const LoginScreen = () => {
       toast.show('Please fill in all fields', 'error');
       return;
     }
-
     if (!validateIDNumber(idNumber)) {
       toast.show('Please enter a valid ID number format: TUPT-XX-XXXX', 'error');
       return;
     }
-    
-    setIsLoading(true);
 
+    setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          idNumber: idNumber,
-          password: password
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idNumber, password }),
       });
-
       const data = await response.json();
-
       if (response.ok) {
-        // Save the full user object just like the web does
         const userData = data.user;
-        
         await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        if (data.token) {
-            await AsyncStorage.setItem('userToken', data.token);
-        }
-        
+        if (data.token) await AsyncStorage.setItem('userToken', data.token);
         toast.show(data.message || 'Logged in successfully!', 'success');
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
+        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       } else {
         toast.show(data.message || 'Login failed', 'error');
       }
     } catch (error) {
-      console.error('Login error:', error);
       toast.show('Cannot connect to server. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleClear = () => {
-    setIdNumber('');
-    setPassword('');
-    setBirthdate('');
-  };
-
   return (
-    <View style={styles.container}>
-      {/* Spacer to emulate the top spacing of Web */}
-      <View style={{ height: Platform.OS === 'ios' ? 60 : 40 }} />
-      
+    <SafeAreaView style={styles.safeArea}>
+      {/* Loading Overlay */}
+      <Modal transparent={true} visible={isLoading} animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(10,10,15,0.9)', justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+            <Text style={{ color: Colors.primary, fontWeight: '900', fontSize: 12, letterSpacing: 3, marginBottom: 20, textTransform: 'uppercase' }}>Secure Authentication</Text>
+            <LottieView 
+              source={require('../../assets/animations/Mapping for machine learning.json')}
+              autoPlay
+              loop
+              style={{ width: 250, height: 250 }}
+            />
+            <Text style={{ color: Colors.foreground, fontWeight: 'bold', fontSize: 16, marginTop: 10 }}>logging in please wait</Text>
+            <Text style={{ color: Colors.textDim, fontSize: 11, marginTop: 8, letterSpacing: 1 }}>Synchronizing with institutional records...</Text>
+        </View>
+      </Modal>
+
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Main Card replicating web shadow-2xl border-gray-200 */}
-          <View style={styles.card}>
-              
-             {/* Header text + Line divider */}
-             <Text style={styles.headerTitle}>SIGN IN</Text>
-             <View style={styles.divider} />
-
-             {/* Form Group */}
-             <View style={styles.formGroup}>
-                
-                {/* ID Number */}
-                <View style={styles.inputContainer}>
-                   <Text style={styles.label}>ID Number:</Text>
-                   <TextInput
-                      style={styles.input}
-                      placeholder="TUPT-XX-XXXX"
-                      placeholderTextColor="#9ca3af"
-                      value={idNumber}
-                      onChangeText={handleInputChange}
-                      autoCapitalize="characters"
-                      keyboardType="default"
-                   />
-                </View>
-
-                {/* Password Input */}
-                <View style={styles.inputContainer}>
-                   <Text style={styles.label}>Password:</Text>
-                   <TextInput
-                      style={styles.input}
-                      placeholder="Password"
-                      placeholderTextColor="#9ca3af"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={true}
-                      autoCapitalize="none"
-                   />
-                </View>
-
-                {/* Birthdate picker */}
-                <View style={styles.inputContainer}>
-                   <Text style={styles.label}>Birthdate:</Text>
-                   <TouchableOpacity onPress={showDatepicker} style={[styles.input, { justifyContent: 'center' }]} activeOpacity={0.7}>
-                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: birthdate ? '#111827' : '#9ca3af' }}>
-                          {birthdate || 'YYYY-MM-DD'}
-                      </Text>
-                   </TouchableOpacity>
-                   {showDatePicker && (
-                       <DateTimePicker
-                           value={selectedDate}
-                           mode="date"
-                           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                           onChange={handleDateChange}
-                           maximumDate={new Date()}
-                       />
-                   )}
-                </View>
-
-                {/* Action Buttons */}
-                <View style={styles.buttonRow}>
-                    <TouchableOpacity 
-                        style={styles.clearBtn}
-                        onPress={handleClear}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={styles.clearBtnText}>Clear</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={[styles.submitBtn, isLoading && styles.disabledBtn]}
-                        onPress={handleLogin}
-                        disabled={isLoading}
-                        activeOpacity={0.8}
-                    >
-                        {isLoading ? (
-                           <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                           <Text style={styles.submitBtnText}>Sign In</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-             </View>
-
-             {/* Footer Links */}
-             <View style={styles.footer}>
-                 <View style={styles.footerTextRow}>
-                     <Text style={styles.footerTextNormal}>Don't have an account? </Text>
-                     <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                         <Text style={styles.footerLinkBold}>Register here</Text>
-                     </TouchableOpacity>
-                 </View>
-                 
-                 <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('Forgot')}>
-                     <Text style={styles.forgotText}>FORGOT PASSWORD?</Text>
-                 </TouchableOpacity>
-             </View>
-
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerEyebrow}>INSTITUTIONAL PORTAL</Text>
+            <Text style={styles.headerTitle}>SIGN IN</Text>
+            <View style={styles.headerAccentLine} />
+            <Text style={styles.headerSub}>
+              Access your TUP research archive account
+            </Text>
           </View>
+
+          {/* Card */}
+          <View style={styles.card}>
+            {/* ID Number */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>ID NUMBER</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="id-card-outline" size={16} color={Colors.primary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="TUPT-XX-XXXX"
+                  placeholderTextColor={Colors.textDim}
+                  value={idNumber}
+                  onChangeText={handleInputChange}
+                  autoCapitalize="characters"
+                  keyboardType="default"
+                />
+              </View>
+            </View>
+
+            {/* Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>PASSWORD</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={16} color={Colors.primary} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Enter your password"
+                  placeholderTextColor={Colors.textDim}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={Colors.textDim} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Birthdate */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>BIRTHDATE</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.inputWrapper} activeOpacity={0.7}>
+                <Ionicons name="calendar-outline" size={16} color={Colors.primary} style={styles.inputIcon} />
+                <Text style={[styles.inputText, { color: birthdate ? Colors.foreground : Colors.textDim }]}>
+                  {birthdate || 'YYYY-MM-DD'}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleDateChange}
+                  maximumDate={new Date()}
+                />
+              )}
+            </View>
+
+            {/* Submit */}
+            <TouchableOpacity
+              style={[styles.submitBtn, isLoading && styles.disabledBtn]}
+              onPress={handleLogin}
+              disabled={isLoading}
+              activeOpacity={0.85}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={Colors.background} />
+              ) : (
+                <>
+                  <Text style={styles.submitBtnText}>SIGN IN</Text>
+                  <Ionicons name="arrow-forward" size={16} color={Colors.background} />
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Forgot */}
+            <TouchableOpacity style={styles.forgotBtn} onPress={() => navigation.navigate('Forgot')}>
+              <Text style={styles.forgotText}>FORGOT PASSWORD?</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.footerLink}>Register here</Text>
+            </TouchableOpacity>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-      flex: 1,
-      backgroundColor: 'transparent',
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
   keyboardView: {
-      flex: 1,
+    flex: 1,
   },
   scrollContainer: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingHorizontal: 24,
-      paddingBottom: 40,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 48,
   },
-  card: {
-      backgroundColor: '#fff',
-      width: '100%',
-      maxWidth: 500,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#e5e7eb',
-      padding: 24,
-      paddingTop: 32,
-      ...Platform.select({
-          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },
-          android: { elevation: 15 }
-      }),
+  header: {
+    marginBottom: 32,
+  },
+  headerEyebrow: {
+    color: Colors.primary,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 3,
+    marginBottom: 8,
   },
   headerTitle: {
-      color: '#111827',
-      fontSize: 14,
-      fontWeight: 'bold',
-      marginBottom: 8,
-      textTransform: 'uppercase',
-      letterSpacing: 1.5,
+    color: Colors.foreground,
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -1,
+    textTransform: 'uppercase',
+    marginBottom: 12,
   },
-  divider: {
-      height: 1,
-      backgroundColor: '#e5e7eb',
-      width: '100%',
-      marginBottom: 24,
+  headerAccentLine: {
+    height: 3,
+    width: 48,
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+    marginBottom: 16,
   },
-  formGroup: {
-      gap: 24,
+  headerSub: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 20,
   },
-  inputContainer: {
-      gap: 8,
+  card: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.3, shadowRadius: 30 },
+      android: { elevation: 12 }
+    }),
+  },
+  inputGroup: {
+    gap: 8,
   },
   label: {
-      fontSize: 13,
-      fontWeight: 'bold',
-      color: '#4b5563',
-      marginLeft: 4,
+    color: Colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginLeft: 4,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 54,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-      width: '100%',
-      height: 56,
-      backgroundColor: '#f9fafb',
-      borderWidth: 1,
-      borderColor: '#e5e7eb',
-      paddingHorizontal: 16,
-      borderRadius: 16,
-      fontSize: 15,
-      color: '#111827',
-      fontWeight: 'bold',
+    flex: 1,
+    color: Colors.foreground,
+    fontSize: 15,
+    fontWeight: '600',
   },
-  buttonRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: 8,
-      marginBottom: 8,
+  inputText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
   },
-  clearBtn: {
-      backgroundColor: '#fff',
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderWidth: 2,
-      borderColor: '#e5e7eb',
-      borderRadius: 8,
-  },
-  clearBtnText: {
-      color: '#6b7280',
-      fontSize: 11,
-      fontWeight: 'bold',
+  eyeButton: {
+    padding: 4,
   },
   submitBtn: {
-      backgroundColor: '#8b0000',
-      paddingHorizontal: 32,
-      paddingVertical: 10,
-      borderRadius: 8,
-      minWidth: 100,
-      alignItems: 'center',
-      ...Platform.select({
-          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
-          android: { elevation: 5 }
-      })
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 10,
+    marginTop: 4,
+    ...Platform.select({
+      ios: { shadowColor: Colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16 },
+      android: { elevation: 8 }
+    }),
   },
   submitBtnText: {
-      color: '#fff',
-      fontSize: 11,
-      fontWeight: '900',
-      textTransform: 'none',
+    color: Colors.background,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 2,
   },
   disabledBtn: {
-      opacity: 0.7,
-  },
-  footer: {
-      borderTopWidth: 1,
-      borderTopColor: '#e5e7eb',
-      paddingTop: 24,
-      marginTop: 16,
-      alignItems: 'center',
-  },
-  footerTextRow: {
-      flexDirection: 'row',
-      marginBottom: 12,
-  },
-  footerTextNormal: {
-      color: '#4b5563',
-      fontSize: 13,
-      fontWeight: '500',
-  },
-  footerLinkBold: {
-      color: '#b91c1c',
-      fontSize: 13,
-      fontWeight: '900',
-      textDecorationLine: 'underline',
+    opacity: 0.6,
   },
   forgotBtn: {
-      marginTop: 4,
+    alignItems: 'center',
+    paddingVertical: 4,
   },
   forgotText: {
-      color: '#9ca3af',
-      fontSize: 11,
-      fontWeight: 'bold',
-      letterSpacing: 1.5,
-  }
+    color: Colors.textDim,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 28,
+  },
+  footerText: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  footerLink: {
+    color: Colors.primary,
+    fontSize: 13,
+    fontWeight: '900',
+  },
 });
 
 export default LoginScreen;

@@ -9,13 +9,16 @@ import {
   Animated,
   Platform,
   Dimensions,
+  Image,
   Modal,
 } from 'react-native';
+import LottieView from 'lottie-react-native';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Colors from '../../utils/Colors';
 import API_BASE_URL from '../../api';
 
 const { width } = Dimensions.get('window');
@@ -24,9 +27,9 @@ const { width } = Dimensions.get('window');
 const FilterModal = ({ 
   visible, onClose, onApply, onClear,
   selectedYear, onYearChange,
-  selectedCategory, onCategoryChange,
+  selectedCourse, onCourseChange,
   selectedType, onTypeChange,
-  availableYears, availableCategories
+  availableYears, availableCourses
 }) => {
   const types = ['all', 'Thesis', 'CAPSTONE', 'Dissertation'];
 
@@ -66,17 +69,17 @@ const FilterModal = ({
               </Picker>
             </View>
 
-            {/* Category Filter */}
-            <Text style={modalStyles.filterLabel}>Department</Text>
+            {/* Course Filter */}
+            <Text style={modalStyles.filterLabel}>Course</Text>
             <View style={modalStyles.pickerContainer}>
               <Picker
-                selectedValue={selectedCategory}
-                onValueChange={(val) => onCategoryChange(val)}
+                selectedValue={selectedCourse}
+                onValueChange={(val) => onCourseChange(val)}
                 style={modalStyles.picker}
                 itemStyle={{ color: '#1f2937' }}
               >
-                {availableCategories.map(c => (
-                    <Picker.Item key={c} label={c === 'all' ? 'All Departments' : c} value={c} />
+                {availableCourses.map(c => (
+                    <Picker.Item key={c} label={c === 'all' ? 'All Courses' : c} value={c} />
                 ))}
               </Picker>
             </View>
@@ -111,6 +114,101 @@ const FilterModal = ({
   );
 };
 
+const IntelligenceModal = ({ visible, onClose, isLoading, data, type }) => {
+  const isSimilarity = type === 'similarity';
+  
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={modalStyles.modalOverlay}>
+        <View style={[modalStyles.modalContainer, { minHeight: 450 }]}>
+          <View style={modalStyles.modalHeader}>
+            <View>
+              <Text style={modalStyles.modalTitle}>
+                {isSimilarity ? 'Similarity Check' : 'AI Recommendation'}
+              </Text>
+              <Text style={{ fontSize: 10, color: Colors.primary, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>
+                {isSimilarity ? 'Searching library databases' : 'Generating creative insights'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={modalStyles.closeBtn}>
+              <Ionicons name="close" size={24} color={Colors.foreground} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={modalStyles.modalContent} showsVerticalScrollIndicator={false}>
+            {isLoading ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+                <Text style={{ marginBottom: 10, color: Colors.textSecondary, fontWeight: 'bold', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}>
+                   {isSimilarity ? 'Searching for matches...' : 'Generating suggestions...'}
+                </Text>
+                <LottieView 
+                  source={require('../../assets/animations/Ai Loading Thinking.json')}
+                  autoPlay
+                  loop
+                  style={{ width: 180, height: 180 }}
+                />
+                <Text style={{ marginTop: -10, color: Colors.textDim, fontSize: 11, textAlign: 'center' }}>Please wait a moment</Text>
+              </View>
+            ) : data ? (
+              <View style={{ paddingVertical: 20 }}>
+                {isSimilarity ? (
+                  <>
+                    <View style={{ alignItems: 'center', marginBottom: 30 }}>
+                      <View style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 8, borderColor: `${Colors.primary}20`, alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 32, fontWeight: '900', color: Colors.primary }}>{Math.round(data.similarity)}%</Text>
+                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: Colors.textSecondary, textTransform: 'uppercase' }}>Similarity</Text>
+                      </View>
+                    </View>
+                    {data.match && (
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, marginBottom: 25 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 }}>
+                          <Ionicons name="alert-circle" size={20} color={Colors.primary} />
+                          <Text style={{ fontSize: 13, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', letterSpacing: 1 }}>Top Conflict Detected</Text>
+                        </View>
+                        <Text style={{ fontSize: 14, color: Colors.textSecondary, fontWeight: 'bold', fontStyle: 'italic', lineHeight: 20 }}>"{data.match.title}"</Text>
+                      </View>
+                    )}
+                    <View style={{ marginBottom: 30 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 }}>
+                        <Ionicons name="bulb-outline" size={20} color={Colors.primary} />
+                        <Text style={{ fontSize: 13, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', letterSpacing: 1 }}>Strategic Recommendation</Text>
+                      </View>
+                      <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                        <Text style={{ fontSize: 14, color: Colors.textSecondary, lineHeight: 24 }}>{data.recommendation}</Text>
+                      </View>
+                    </View>
+                  </>
+                ) : (
+                  <View style={{ marginBottom: 30 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15, gap: 10 }}>
+                      <Ionicons name="sparkles" size={20} color={Colors.primary} />
+                      <Text style={{ fontSize: 13, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', letterSpacing: 1 }}>Optimized Recommendations</Text>
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: Colors.border }}>
+                      <Text style={{ fontSize: 14, color: Colors.textSecondary, lineHeight: 24 }}>{data}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            ) : null}
+          </ScrollView>
+          {!isLoading && data && (
+            <View style={modalStyles.modalFooter}>
+              <TouchableOpacity style={[modalStyles.applyBtn, { flex: 1 }]} onPress={onClose}>
+                <Text style={modalStyles.applyBtnText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const SearchResultScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -125,15 +223,18 @@ const SearchResultScreen = () => {
   // Filter States
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState(initialParams.year || 'all');
-  const [selectedCategory, setSelectedCategory] = useState(initialParams.category || 'all');
+  const [selectedCourse, setSelectedCourse] = useState(initialParams.course || initialParams.category || 'all');
   const [selectedType, setSelectedType] = useState(initialParams.type || 'all');
 
   const [availableYears, setAvailableYears] = useState(['all']);
-  const [availableCategories, setAvailableCategories] = useState(['all']);
+  const [availableCourses, setAvailableCourses] = useState(['all']);
 
-  // AI Feature States
   const [aiRecommendation, setAiRecommendation] = useState(null);
-  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [localComparison, setLocalComparison] = useState(null);
+  const [isIntelligenceLoading, setIsIntelligenceLoading] = useState(false);
+  const [intelligenceType, setIntelligenceType] = useState('similarity'); 
+  const [isIntelligenceModalOpen, setIsIntelligenceModalOpen] = useState(false);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -145,18 +246,18 @@ const SearchResultScreen = () => {
       const token = await AsyncStorage.getItem('userToken');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const [yearsRes, catsRes] = await Promise.all([
+      const [yearsRes, coursesRes] = await Promise.all([
         fetch(`${API_BASE_URL}/thesis/years`, { headers }),
-        fetch(`${API_BASE_URL}/thesis/categories`, { headers })
+        fetch(`${API_BASE_URL}/thesis/courses`, { headers })
       ]);
 
       if (yearsRes.ok) {
         const years = await yearsRes.json();
         setAvailableYears(['all', ...years]);
       }
-      if (catsRes.ok) {
-        const cats = await catsRes.json();
-        setAvailableCategories(['all', ...cats]);
+      if (coursesRes.ok) {
+        const courses = await coursesRes.json();
+        setAvailableCourses(['all', ...courses]);
       }
     } catch (err) {
       console.error('Error fetching filters:', err);
@@ -170,7 +271,7 @@ const SearchResultScreen = () => {
       duration: 500,
       useNativeDriver: true,
     }).start();
-  }, [query, selectedYear, selectedCategory, selectedType]);
+  }, [query, selectedYear, selectedCourse, selectedType]);
 
   const fetchSearchResults = async () => {
     setIsLoading(true);
@@ -183,7 +284,7 @@ const SearchResultScreen = () => {
       const params = [];
       if (query) params.push(`query=${encodeURIComponent(query)}`);
       if (selectedYear && selectedYear !== 'all') params.push(`year=${encodeURIComponent(selectedYear)}`);
-      if (selectedCategory && selectedCategory !== 'all') params.push(`category=${encodeURIComponent(selectedCategory)}`);
+      if (selectedCourse && selectedCourse !== 'all') params.push(`course=${encodeURIComponent(selectedCourse)}`);
       if (selectedType && selectedType !== 'all') params.push(`type=${encodeURIComponent(selectedType)}`);
 
       const response = await fetch(`${API_BASE_URL}/thesis/search?${params.join('&')}`, {
@@ -212,7 +313,7 @@ const SearchResultScreen = () => {
 
   const clearFilters = () => {
     setSelectedYear('all');
-    setSelectedCategory('all');
+    setSelectedCourse('all');
     setSelectedType('all');
     setIsFilterVisible(false);
   };
@@ -220,7 +321,9 @@ const SearchResultScreen = () => {
   const handleRecommendByAi = async () => {
     if (!query) return;
     
-    setIsLoadingAi(true);
+    setIntelligenceType('ai');
+    setIsIntelligenceModalOpen(true);
+    setIsIntelligenceLoading(true);
     setAiRecommendation(null);
 
     try {
@@ -255,20 +358,72 @@ const SearchResultScreen = () => {
       console.error('AI Recommendation error:', error);
       alert('Network error while getting AI recommendation.');
     } finally {
-      setIsLoadingAi(false);
+      setIsIntelligenceLoading(false);
+    }
+  };
+
+  const handleCompareLocal = async (thesisTitle) => {
+    const targetQuery = thesisTitle || query;
+    if (!targetQuery || targetQuery.trim().split(/\s+/).length < 3) {
+      alert('The title/content must be at least 3 words to check similarity.');
+      return;
+    }
+
+    setAiRecommendation(null);
+    setLocalComparison(null);
+    setIntelligenceType('similarity');
+    setIsIntelligenceLoading(true);
+    setIsIntelligenceModalOpen(true);
+
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      const headers = { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` 
+      };
+      
+      const response = await fetch(`${API_BASE_URL}/thesis/compare-local`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ title: targetQuery })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setLocalComparison(data);
+      } else {
+        alert(data.message || 'Failed to check similarity');
+        setIsComparisonModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Local Comparison error:', error);
+      alert('Network error while checking similarity.');
+      setIsComparisonModalOpen(false);
+    } finally {
+      setIsIntelligenceLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Intelligence Modal (Shared for AI and Similarity) */}
+      <IntelligenceModal 
+        visible={isIntelligenceModalOpen}
+        onClose={() => setIsIntelligenceModalOpen(false)}
+        isLoading={isIntelligenceLoading}
+        data={intelligenceType === 'similarity' ? localComparison : aiRecommendation}
+        type={intelligenceType}
+      />
+
       {/* Header Area */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#1f2937" />
+          <Ionicons name="arrow-back" size={24} color={Colors.foreground} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Search Results</Text>
         <TouchableOpacity style={styles.filterTrigger} onPress={() => setIsFilterVisible(true)}>
-          <Ionicons name="options" size={22} color="#1f2937" />
+          <Ionicons name="options" size={22} color={Colors.foreground} />
         </TouchableOpacity>
       </View>
 
@@ -277,22 +432,43 @@ const SearchResultScreen = () => {
         onClose={() => setIsFilterVisible(false)}
         selectedYear={selectedYear}
         onYearChange={setSelectedYear}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
+        selectedCourse={selectedCourse}
+        onCourseChange={setSelectedCourse}
         selectedType={selectedType}
         onTypeChange={setSelectedType}
         onApply={applyFilters}
         onClear={clearFilters}
         availableYears={availableYears}
-        availableCategories={availableCategories}
+        availableCourses={availableCourses}
       />
 
-      <LinearGradient colors={['#7f0000', '#240000']} style={styles.gradientBackground}>
+        <ComparisonModal 
+        visible={isComparisonModalOpen}
+        onClose={() => setIsComparisonModalOpen(false)}
+        isLoading={isLoadingLocal}
+        data={localComparison}
+      />
+
+      <LinearGradient colors={[Colors.background, Colors.surface, Colors.background]} style={styles.gradientBackground}>
         <ScrollView 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <Animated.View style={{ opacity: fadeAnim }}>
+          {/* Main Search Loading */}
+          {isLoading && (
+            <View style={{ paddingVertical: 80, alignItems: 'center' }}>
+               <Text style={{ color: Colors.textSecondary, fontWeight: '900', fontSize: 12, letterSpacing: 2, marginBottom: 10 }}>ARCHIVE QUERY IN PROGRESS</Text>
+               <LottieView 
+                  source={require('../../assets/animations/Ai Loading Thinking.json')}
+                  autoPlay
+                  loop
+                  style={{ width: 220, height: 220 }}
+               />
+            </View>
+          )}
+
+          {!isLoading && (
+            <Animated.View style={{ opacity: fadeAnim }}>
             
             {/* Active Filters / Query Info */}
             <View style={styles.infoContainer}>
@@ -314,9 +490,9 @@ const SearchResultScreen = () => {
                             <Text style={styles.filterBadgeText}>Year: {selectedYear}</Text>
                         </View>
                     )}
-                    {selectedCategory !== 'all' && (
+                    {selectedCourse !== 'all' && (
                         <View style={styles.filterBadge}>
-                            <Text style={styles.filterBadgeText}>Dept: {selectedCategory}</Text>
+                            <Text style={styles.filterBadgeText}>Dept: {selectedCourse}</Text>
                         </View>
                     )}
                     {selectedType !== 'all' && (
@@ -335,30 +511,35 @@ const SearchResultScreen = () => {
                     <Ionicons name="hardware-chip" size={22} color="#7f0000" />
                   </View>
                   <View style={styles.aiHeaderTextContainer}>
-                     <Text style={styles.aiTitle}>AI Title Recommendation</Text>
-                     <Text style={styles.aiSubtitle}>Get a professional thesis title tailored to your search</Text>
+                     <Text style={styles.aiTitle}>Research Intelligence Portal</Text>
+                     <Text style={styles.aiSubtitle}>Search-driven analysis and title recommendations</Text>
                   </View>
                 </View>
                 
-                {aiRecommendation ? (
+                 {aiRecommendation ? (
                     <View style={styles.aiResultContainer}>
                         <Text style={styles.aiResultText}>{aiRecommendation}</Text>
                     </View>
                 ) : (
-                    <TouchableOpacity 
-                        style={styles.aiButton}
-                        onPress={handleRecommendByAi}
-                        disabled={isLoadingAi}
-                    >
-                        {isLoadingAi ? (
-                            <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-                        ) : (
+                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <TouchableOpacity 
+                            style={[styles.aiButton, { flex: 1, backgroundColor: `${Colors.primary}15`, borderWidth: 1, borderColor: `${Colors.primary}30` }]}
+                            onPress={() => handleCompareLocal()}
+                            disabled={isIntelligenceLoading && intelligenceType === 'similarity'}
+                        >
+                            <Ionicons name="search" size={18} color={Colors.primary} style={{ marginRight: 8 }} />
+                            <Text style={[styles.aiButtonText, { color: Colors.primary }]}>Check Similarity</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.aiButton, { flex: 1 }]}
+                            onPress={handleRecommendByAi}
+                            disabled={isIntelligenceLoading && intelligenceType === 'ai'}
+                        >
                             <Ionicons name="sparkles" size={18} color="#fff" style={{ marginRight: 8 }} />
-                        )}
-                        <Text style={styles.aiButtonText}>
-                            {isLoadingAi ? 'Generating Idea...' : 'Recommend by AI'}
-                        </Text>
-                    </TouchableOpacity>
+                            <Text style={styles.aiButtonText}>AI Suggest</Text>
+                        </TouchableOpacity>
+                    </View>
                 )}
               </View>
             )}
@@ -371,21 +552,14 @@ const SearchResultScreen = () => {
               </View>
             )}
 
-            {/* Loading Indicator */}
-            {isLoading ? (
-               <View style={styles.loadingContainer}>
-                   <ActivityIndicator size="large" color="#fff" />
-                   <Text style={styles.loadingText}>Searching archive...</Text>
-               </View>
-            ) : (
-               // Results List
-               <View style={styles.resultsContainer}>
+             {/* Results List */}
+             <View style={styles.resultsContainer}>
                  {results.length > 0 ? (
                     results.map((thesis) => (
                         <TouchableOpacity 
                             key={thesis.id} 
                             style={styles.thesisCard}
-                            onPress={() => navigation.navigate('ThesisDetail', { thesisId: thesis.id })}
+                            onPress={() => navigation.navigate('ThesisDetail', { thesisId: thesis._id })}
                             activeOpacity={0.8}
                         >
                             <View style={styles.thesisCardHeader}>
@@ -414,17 +588,16 @@ const SearchResultScreen = () => {
                     </View>
                  )}
                </View>
-            )}
-
-          </Animated.View>
-        </ScrollView>
+            </Animated.View>
+           )}
+         </ScrollView>
       </LinearGradient>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -432,12 +605,12 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: Colors.border,
   },
   backButton: { padding: 5, marginLeft: -5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.foreground },
   filterTrigger: { padding: 5, marginRight: -5 },
   gradientBackground: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingVertical: 20 },
@@ -446,100 +619,104 @@ const styles = StyleSheet.create({
   pageFilterBtn: { 
       flexDirection: 'row', 
       alignItems: 'center', 
-      backgroundColor: 'rgba(255,255,255,0.15)', 
+      backgroundColor: `${Colors.primary}15`, 
       paddingHorizontal: 10, 
       paddingVertical: 6, 
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.2)'
+      borderColor: `${Colors.primary}30`
   },
-  pageFilterBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold', marginLeft: 4 },
+  pageFilterBtnText: { color: Colors.primary, fontSize: 12, fontWeight: 'bold', marginLeft: 4 },
   queryTag: {
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: Colors.card,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.2)',
+      borderColor: Colors.border,
   },
-  queryTagText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+  queryTagText: { color: Colors.foreground, fontWeight: 'bold', fontSize: 12 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filterBadge: {
-      backgroundColor: 'rgba(127, 0, 0, 0.4)',
+      backgroundColor: `${Colors.primary}15`,
       borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: `${Colors.primary}30`,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 20,
   },
-  filterBadgeText: { color: '#fecaca', fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' },
+  filterBadgeText: { color: Colors.primary, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' },
   aiPanel: {
-      backgroundColor: '#fff',
+      backgroundColor: Colors.card,
       borderRadius: 20,
       padding: 20,
       marginBottom: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 5,
+      borderWidth: 1,
+      borderColor: Colors.border,
+      ...Platform.select({
+          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+          android: { elevation: 5 },
+      }),
   },
   aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-  aiIconContainer: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fef2f2', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  aiIconContainer: { width: 40, height: 40, borderRadius: 12, backgroundColor: `${Colors.primary}15`, borderWidth: 1, borderColor: `${Colors.primary}30`, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   aiHeaderTextContainer: { flex: 1 },
-  aiTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginBottom: 2 },
-  aiSubtitle: { fontSize: 12, color: '#6b7280' },
-  aiButton: { flexDirection: 'row', backgroundColor: '#7f0000', borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  aiButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  aiResultContainer: { backgroundColor: '#f9fafb', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#f3f4f6' },
-  aiResultText: { fontSize: 14, color: '#374151', lineHeight: 22 },
-  errorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(254, 226, 226, 0.1)', padding: 15, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(254, 202, 202, 0.2)' },
-  errorText: { color: '#fecaca', marginLeft: 10, flex: 1 },
+  aiTitle: { fontSize: 15, fontWeight: 'bold', color: Colors.foreground, marginBottom: 2 },
+  aiSubtitle: { fontSize: 12, color: Colors.textSecondary },
+  aiButton: { flexDirection: 'row', backgroundColor: Colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  aiButtonText: { color: Colors.background, fontWeight: 'bold', fontSize: 14 },
+  aiResultContainer: { backgroundColor: 'rgba(255,255,255,0.03)', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: Colors.border },
+  aiResultText: { fontSize: 14, color: Colors.textSecondary, lineHeight: 22 },
+  errorContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239,68,68,0.1)', padding: 15, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' },
+  errorText: { color: '#f87171', marginLeft: 10, flex: 1 },
   loadingContainer: { alignItems: 'center', paddingVertical: 60 },
-  loadingText: { marginTop: 15, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+  loadingText: { marginTop: 15, color: Colors.textSecondary, fontWeight: '600' },
   resultsContainer: { gap: 15 },
   thesisCard: {
-      backgroundColor: '#fff',
+      backgroundColor: Colors.card,
       borderRadius: 16,
       padding: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-      elevation: 3,
+      borderWidth: 1,
+      borderColor: Colors.border,
+      ...Platform.select({
+          ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6 },
+          android: { elevation: 4 },
+      }),
   },
   thesisCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  yearBadge: { backgroundColor: '#fef2f2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: '#fecaca' },
-  yearText: { color: '#7f0000', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
-  thesisTitle: { fontSize: 16, fontWeight: 'black', color: '#1f2937', marginBottom: 8, lineHeight: 22 },
-  thesisAbstract: { fontSize: 13, color: '#4b5563', lineHeight: 18, marginBottom: 15 },
+  yearBadge: { backgroundColor: `${Colors.primary}15`, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: `${Colors.primary}30` },
+  yearText: { color: Colors.primary, fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase' },
+  thesisTitle: { fontSize: 15, fontWeight: 'bold', color: Colors.foreground, marginBottom: 8, lineHeight: 22 },
+  thesisAbstract: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 15 },
   thesisFooter: { flexDirection: 'row', alignItems: 'center' },
-  thesisId: { fontSize: 11, fontWeight: 'bold', color: '#9ca3af', marginLeft: 6, textTransform: 'uppercase', letterSpacing: 1 },
+  thesisId: { fontSize: 11, fontWeight: 'bold', color: Colors.textDim, marginLeft: 6, textTransform: 'uppercase', letterSpacing: 1 },
   emptyContainer: { alignItems: 'center', paddingVertical: 80 },
-  emptyIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
-  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', textAlign: 'center' }
+  emptyIconContainer: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', marginBottom: 15, borderWidth: 1, borderColor: Colors.border },
+  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: Colors.foreground, marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center' }
 });
 
 const modalStyles = StyleSheet.create({
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
     modalContainer: { 
-        backgroundColor: '#fff', 
+        backgroundColor: Colors.surface, 
         borderTopLeftRadius: 30, 
         borderTopRightRadius: 30, 
+        borderTopWidth: 1,
+        borderColor: Colors.border,
         minHeight: Platform.OS === 'ios' ? 500 : 400,
         maxHeight: '92%' 
     },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-    modalTitle: { fontSize: 20, fontWeight: '999', color: '#1f2937' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: Colors.border },
+    modalTitle: { fontSize: 18, fontWeight: '900', color: Colors.foreground },
     closeBtn: { padding: 5 },
     modalContent: { paddingHorizontal: 25 },
-    filterLabel: { fontSize: 13, fontWeight: '800', color: '#6b7280', marginBottom: 12, marginTop: 10, textTransform: 'uppercase', letterSpacing: 1.5 },
+    filterLabel: { fontSize: 11, fontWeight: '900', color: Colors.textSecondary, marginBottom: 12, marginTop: 10, textTransform: 'uppercase', letterSpacing: 2 },
     pickerContainer: { 
-        backgroundColor: '#f9fafb', 
+        backgroundColor: Colors.card, 
         borderRadius: 12, 
         borderWidth: 1, 
-        borderColor: '#e5e7eb', 
+        borderColor: Colors.border, 
         marginBottom: 25, 
         overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
         minHeight: Platform.OS === 'ios' ? 200 : 58,
@@ -548,7 +725,7 @@ const modalStyles = StyleSheet.create({
     picker: { 
         height: Platform.OS === 'ios' ? 200 : 58, 
         width: '100%',
-        color: '#111827',
+        color: Colors.foreground,
     },
     modalFooter: { 
         flexDirection: 'row', 
@@ -556,14 +733,14 @@ const modalStyles = StyleSheet.create({
         gap: 12, 
         paddingTop: 15, 
         paddingBottom: Platform.OS === 'ios' ? 45 : 25,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surface,
         borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
+        borderTopColor: Colors.border,
     },
-    clearBtn: { flex: 1, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
-    clearBtnText: { color: '#6b7280', fontWeight: 'bold' },
-    applyBtn: { flex: 2, backgroundColor: '#7f0000', paddingVertical: 15, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-    applyBtnText: { color: '#fff', fontWeight: 'bold' },
+    clearBtn: { flex: 1, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderColor: Colors.border },
+    clearBtnText: { color: Colors.textSecondary, fontWeight: 'bold' },
+    applyBtn: { flex: 2, backgroundColor: Colors.primary, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
+    applyBtnText: { color: Colors.background, fontWeight: 'bold' },
 });
 
 export default SearchResultScreen;

@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_BASE_URL from '../../api';
 import { useToast } from '../../utils/ToastContext';
+import Colors from '../../utils/Colors';
 
 const { width } = Dimensions.get('window');
 
@@ -185,19 +186,16 @@ const ProfileScreen = () => {
 
   if (!user) {
     return (
-      <LinearGradient colors={['#fef2f2', '#fee2e2', '#fecaca']} style={styles.gradientBackground}>
+      <View style={styles.gradientBackground}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
   return (
-    <LinearGradient
-      colors={['#fef2f2', '#fee2e2', '#fecaca']}
-      style={styles.gradientBackground}
-    >
+    <View style={styles.gradientBackground}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -217,14 +215,9 @@ const ProfileScreen = () => {
               </TouchableOpacity>
               
               <View style={styles.avatarContainer}>
-                <LinearGradient
-                  colors={['#c7242c', '#991b1b']}
-                  style={styles.avatar}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="person" size={48} color="white" />
-                </LinearGradient>
+                <View style={[styles.avatar, { backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.primary }]}>
+                  <Ionicons name="person" size={48} color={Colors.primary} />
+                </View>
               </View>
               
               <Text style={styles.welcomeTitle}>{user.name}</Text>
@@ -241,8 +234,8 @@ const ProfileScreen = () => {
                     style={styles.editButton}
                     onPress={() => setIsEditing(true)}
                   >
-                    <Ionicons name="create-outline" size={20} color="#c7242c" />
-                    <Text style={styles.editButtonText}>Edit</Text>
+                    <Ionicons name="create-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.editButtonText}>Edit</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity 
@@ -389,23 +382,18 @@ const ProfileScreen = () => {
                     style={[styles.updateButton, isLoading && styles.disabledButton]}
                     onPress={handleUpdateProfile}
                     disabled={isLoading}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                   >
-                    <LinearGradient
-                      colors={['#c7242c', '#991b1b']}
-                      style={styles.updateGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                    >
+                    <View style={styles.updateGradient}>
                       {isLoading ? (
                         <Text style={styles.updateButtonText}>Updating...</Text>
                       ) : (
                         <>
                           <Text style={styles.updateButtonText}>Update Profile</Text>
-                          <Ionicons name="checkmark-circle" size={20} color="white" />
+                          <Ionicons name="checkmark-circle" size={20} color={Colors.background} />
                         </>
                       )}
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
                 )}
               </View>
@@ -413,13 +401,14 @@ const ProfileScreen = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   gradientBackground: {
     flex: 1,
+    backgroundColor: Colors.background,
   },
   container: {
     flex: 1,
@@ -435,7 +424,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#6b7280',
+    color: Colors.textSecondary,
     fontSize: 18,
   },
   profileSection: {
@@ -451,6 +440,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     padding: 8,
     marginBottom: 20,
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   avatarContainer: {
     marginBottom: 16,
@@ -458,47 +451,35 @@ const styles = StyleSheet.create({
   avatar: {
     width: 100,
     height: 100,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 20,
     ...Platform.select({
-      ios: {
-        shadowColor: '#c7242c',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
+      ios: { shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+      android: { elevation: 8 },
     }),
   },
   welcomeTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: Colors.foreground,
     marginBottom: 4,
   },
   welcomeSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   profileBox: {
     width: width > 480 ? 420 : '100%',
     maxWidth: 420,
-    padding: 30,
+    padding: 24,
     borderRadius: 24,
-    backgroundColor: 'white',
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: Colors.border,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 8,
-      },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.3, shadowRadius: 20 },
+      android: { elevation: 8 },
     }),
   },
   cardHeader: {
@@ -508,12 +489,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.border,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: Colors.foreground,
   },
   editButton: {
     flexDirection: 'row',
@@ -521,9 +502,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   editButtonText: {
-    fontSize: 14,
-    color: '#c7242c',
-    fontWeight: '600',
+    fontSize: 13,
+    color: Colors.primary,
+    fontWeight: '700',
   },
   cancelButton: {
     flexDirection: 'row',
@@ -531,8 +512,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   cancelButtonText: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 13,
+    color: Colors.textSecondary,
     fontWeight: '600',
   },
   formContainer: {
@@ -542,91 +523,87 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.textSecondary,
     marginBottom: 8,
+    letterSpacing: 1.5,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 16,
+    borderColor: Colors.border,
+    paddingHorizontal: 14,
     minHeight: 50,
   },
   disabledInputWrapper: {
-    backgroundColor: '#f3f4f6',
-    opacity: 0.7,
+    opacity: 0.5,
   },
   inputIcon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#1f2937',
+    paddingVertical: 12,
+    fontSize: 15,
+    color: Colors.foreground,
   },
   dateText: {
     flex: 1,
-    fontSize: 16,
-    color: '#1f2937',
+    fontSize: 15,
+    color: Colors.foreground,
     paddingVertical: 14,
   },
   placeholderText: {
     flex: 1,
-    fontSize: 16,
-    color: '#9ca3af',
+    fontSize: 15,
+    color: Colors.textDim,
     paddingVertical: 14,
   },
   passwordSection: {
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: Colors.border,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: 14,
+    fontWeight: '900',
+    color: Colors.foreground,
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: Colors.textDim,
     marginBottom: 16,
     fontStyle: 'italic',
   },
   updateButton: {
     marginTop: 24,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     ...Platform.select({
-      ios: {
-        shadowColor: '#c7242c',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
+      ios: { shadowColor: Colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12 },
+      android: { elevation: 6 },
     }),
   },
   updateGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
     gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
   },
   updateButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: Colors.background,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   disabledButton: {
     opacity: 0.6,

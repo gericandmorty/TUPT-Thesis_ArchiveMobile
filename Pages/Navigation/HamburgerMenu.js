@@ -96,6 +96,7 @@ const HamburgerMenu = ({ isVisible, onClose, navigation }) => {
     { icon: 'document-text', label: 'ANALYSIS WORKSPACE', screen: 'AnalysisWorkspace' },
     { icon: 'cloud-upload', label: 'SUBMIT THESIS', screen: 'SubmitThesis' },
     { icon: 'folder', label: 'MY SUBMISSIONS', screen: 'MySubmissions' },
+    ...(user?.isProfessor ? [{ icon: 'checkmark-circle', label: 'PENDING APPROVALS', screen: 'Approvals' }] : []),
   ];
 
   const handleMenuItemPress = (screen) => {

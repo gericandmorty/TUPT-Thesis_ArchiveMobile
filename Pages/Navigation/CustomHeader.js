@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + 12 : 40,
     paddingBottom: 12,
+    zIndex: 1000,
   },
   menuButton: {
     padding: 8,
@@ -180,6 +181,7 @@ const styles = StyleSheet.create({
   searchWrapper: {
     flex: 1,
     marginHorizontal: 8,
+    zIndex: 1000,
   },
   searchContainer: {
     flexDirection: 'row',

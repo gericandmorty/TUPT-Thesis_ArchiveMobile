@@ -17,6 +17,7 @@ import SubmitThesisScreen from './Pages/Documents/Submit/SubmitThesis';
 import MySubmissionsScreen from './Pages/Documents/Submissions/MySubmissions';
 import SearchResultScreen from './Pages/Search/SearchResult';
 import CollaborationScreen from './Pages/Collaboration/Collaboration';
+import ApprovalsScreen from './Pages/User/Approvals';
 import { ToastProvider } from './utils/ToastContext';
 
 const Stack = createStackNavigator();
@@ -47,6 +48,7 @@ export default function App() {
           <Stack.Screen name="MySubmissions" component={MySubmissionsScreen} />
           <Stack.Screen name="SearchResult" component={SearchResultScreen} />
           <Stack.Screen name="Collaboration" component={CollaborationScreen} />
+          <Stack.Screen name="Approvals" component={ApprovalsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ToastProvider>

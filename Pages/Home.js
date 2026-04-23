@@ -43,6 +43,7 @@ const HomeScreen = () => {
     const [sessionHistory, setSessionHistory] = useState([]);
     const [localHistory, setLocalHistory] = useState([]);
     const [loadingAi, setLoadingAi] = useState(false);
+    const [pendingCount, setPendingCount] = useState(0);
 
     // Selected AI Modal
     const [selectedAiItem, setSelectedAiItem] = useState(null);
@@ -117,6 +118,16 @@ const HomeScreen = () => {
                 })
                 .catch(err => console.log('Error fetching history:', err))
                 .finally(() => setLoadingAi(false));
+
+                // Fetch Pending Approvals count if Professor
+                if (userDataStr && JSON.parse(userDataStr).isProfessor) {
+                    fetch(`${API_BASE_URL}/thesis/assigned/count`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    .then(res => res.json())
+                    .then(data => { if (data.count !== undefined) setPendingCount(data.count) })
+                    .catch(err => console.log('Error fetching pending count', err));
+                }
             }
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -281,48 +292,46 @@ const HomeScreen = () => {
                         opacity: statsAnim,
                         transform: [{ translateY: statsAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
                     }}>
-                        <ScrollView 
-                            horizontal 
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.statsScrollContainer}
-                            style={styles.statsScrollArea}
-                        >
+                    <View style={styles.statsGrid}>
+                        <View style={styles.statRow}>
                             {/* Archive Size */}
-                            <View style={styles.statCard}>
+                            <View style={styles.statCardCompact}>
                                 <View style={styles.statInfo}>
-                                    <Text style={styles.statLabelTop}>ARCHIVE SIZE</Text>
-                                    <Text style={styles.statValue}>{thesisCount.toLocaleString()}</Text>
-                                    <Text style={[styles.statLabelBottom, { color: Colors.primary }]}>THESES INDEXED</Text>
+                                    <Text style={styles.statLabelTop}>ARCHIVE</Text>
+                                    <Text style={styles.statValueCompact}>{thesisCount.toLocaleString()}</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: `${Colors.primary}15`, borderColor: `${Colors.primary}30` }]}>
-                                    <Ionicons name="search" size={24} color={Colors.primary} />
+                                <View style={[styles.statIconBoxSmall, { backgroundColor: `${Colors.primary}15`, borderColor: `${Colors.primary}30` }]}>
+                                    <Ionicons name="search" size={16} color={Colors.primary} />
                                 </View>
                             </View>
 
                             {/* AI History Count */}
-                            <View style={styles.statCard}>
+                            <View style={styles.statCardCompact}>
                                 <View style={styles.statInfo}>
-                                    <Text style={styles.statLabelTop}>AI HISTORY</Text>
-                                    <Text style={styles.statValue}>{aiHistory.length}</Text>
-                                    <Text style={[styles.statLabelBottom, { color: Colors.purple }]}>RECOMMENDATIONS</Text>
+                                    <Text style={styles.statLabelTop}>AI LOGS</Text>
+                                    <Text style={styles.statValueCompact}>{aiHistory.length}</Text>
                                 </View>
-                                <View style={[styles.statIconBox, { backgroundColor: `${Colors.purple}15`, borderColor: `${Colors.purple}30` }]}>
-                                    <Ionicons name="hardware-chip" size={24} color={Colors.purple} />
+                                <View style={[styles.statIconBoxSmall, { backgroundColor: `${Colors.purple}15`, borderColor: `${Colors.purple}30` }]}>
+                                    <Ionicons name="hardware-chip" size={16} color={Colors.purple} />
                                 </View>
                             </View>
+                        </View>
 
-                            {/* Recent Activity Count */}
-                            <View style={styles.statCard}>
-                                <View style={styles.statInfo}>
-                                    <Text style={styles.statLabelTop}>RECENTLY VIEWED</Text>
-                                    <Text style={styles.statValue}>{sessionHistory.length}</Text>
-                                    <Text style={[styles.statLabelBottom, { color: Colors.orange }]}>DATABASE RECORDS</Text>
-                                </View>
-                                <View style={[styles.statIconBox, { backgroundColor: `${Colors.orange}15`, borderColor: `${Colors.orange}30` }]}>
-                                    <Ionicons name="time" size={24} color={Colors.orange} />
-                                </View>
+                        {/* Recent Activity Count OR Pending Approvals */}
+                        <TouchableOpacity 
+                            style={styles.statCardWide}
+                            activeOpacity={user?.isProfessor ? 0.7 : 1}
+                            onPress={() => user?.isProfessor && navigation.navigate('Approvals')}
+                        >
+                            <View style={styles.statInfo}>
+                                <Text style={styles.statLabelTop}>{user?.isProfessor ? 'FACULTY REVIEW' : 'RECENT ACTIVITY'}</Text>
+                                <Text style={styles.statValueCompact}>{user?.isProfessor ? pendingCount : sessionHistory.length}</Text>
                             </View>
-                        </ScrollView>
+                            <View style={[styles.statIconBoxSmall, { backgroundColor: `${user?.isProfessor ? Colors.primary : Colors.orange}15`, borderColor: `${user?.isProfessor ? Colors.primary : Colors.orange}30` }]}>
+                                <Ionicons name={user?.isProfessor ? "school" : "time"} size={16} color={user?.isProfessor ? Colors.primary : Colors.orange} />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
                     </Animated.View>
 
                     {/* AI Recommendation Log Area */}
@@ -551,68 +560,67 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
 
-    // Top Stats Scroller
-    statsScrollArea: {
-        marginBottom: 40,
-    },
-    statsScrollContainer: {
+    // Top Stats Grid
+    statsGrid: {
         paddingHorizontal: 24,
-        gap: 16,
-        paddingVertical: 10,
+        marginBottom: 20,
     },
-    statCard: {
+    statRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 12,
+    },
+    statCardCompact: {
+        flex: 1,
         backgroundColor: Colors.card,
-        borderRadius: 24,
-        padding: 24,
-        width: width * 0.75,
-        minHeight: 140,
+        borderRadius: 16,
+        padding: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         borderWidth: 1,
         borderColor: Colors.border,
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16 },
-            android: { elevation: 6 }
-        }),
+    },
+    statCardWide: {
+        backgroundColor: Colors.card,
+        borderRadius: 16,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    statValueCompact: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: Colors.foreground,
+        lineHeight: 24,
+    },
+    statIconBoxSmall: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     statInfo: {
         flex: 1,
     },
     statLabelTop: {
-        fontSize: 10,
+        fontSize: 9,
         color: Colors.textSecondary,
         fontWeight: '900',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
-        marginBottom: 4,
-    },
-    statValue: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: Colors.foreground,
-        lineHeight: 40,
-    },
-    statLabelBottom: {
-        fontSize: 10,
-        fontWeight: '900',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginTop: 10,
-    },
-    statIconBox: {
-        width: 56,
-        height: 56,
-        borderRadius: 16,
-        borderWidth: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
+        marginBottom: 2,
     },
 
     // Sections Framework
     sectionContainer: {
         paddingHorizontal: 24,
-        marginBottom: 40,
+        marginBottom: 24,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -700,7 +708,8 @@ const styles = StyleSheet.create({
 
     // List Items
     historyItemRow: {
-        padding: 20,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -767,14 +776,14 @@ const styles = StyleSheet.create({
     // Secondary Grid Items
     secondaryGrid: {
         paddingHorizontal: 24,
-        gap: 32,
+        gap: 24,
         paddingBottom: 40,
     },
     gridColumn: {
         flex: 1,
     },
     recentItemView: {
-        padding: 20,
+        padding: 14,
     },
     recentItemYear: {
         fontSize: 9,

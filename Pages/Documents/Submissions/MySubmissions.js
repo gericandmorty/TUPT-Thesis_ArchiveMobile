@@ -94,14 +94,13 @@ const MySubmissions = () => {
                 ) : theses.length > 0 ? (
                     theses.map((thesis) => (
                         <View key={thesis._id} style={styles.thesisCard}>
-                            {/* Category + Status */}
+                            {/* Course + Status */}
                             <View style={styles.cardTopRow}>
-                                <View style={styles.categoryPill}>
-                                    <Text style={styles.categoryPillText}>{thesis.course || 'General'}</Text>
-                                </View>
+                                <Text style={styles.courseText}>{thesis.course || 'General'}</Text>
                                 <View style={[styles.statusPill, thesis.isApproved ? styles.statusApproved : styles.statusPending]}>
+                                    <View style={[styles.statusDot, { backgroundColor: thesis.isApproved ? '#4ade80' : '#fbbf24' }]} />
                                     <Text style={[styles.statusPillText, thesis.isApproved ? styles.statusApprovedText : styles.statusPendingText]}>
-                                        {thesis.isApproved ? 'Approved' : 'Pending Review'}
+                                        {thesis.isApproved ? 'Approved' : 'Reviewing'}
                                     </Text>
                                 </View>
                             </View>
@@ -109,25 +108,48 @@ const MySubmissions = () => {
                             {/* Title */}
                             <Text style={styles.thesisTitle} numberOfLines={2}>{thesis.title}</Text>
 
-                            {/* Author + Year */}
-                            <Text style={styles.thesisAuthor}>{thesis.author} • {thesis.year_range || 'Unknown Year'}</Text>
-
-                            {/* View Button */}
-                            <View style={styles.cardFooter}>
-                                <View style={styles.docIcon}>
-                                    <Ionicons name="document-text" size={16} color="#9ca3af" />
+                            {/* Metadata */}
+                            <View style={styles.metaRow}>
+                                <View style={styles.metaCol}>
+                                    <Text style={styles.metaLabel}>AUTHOR</Text>
+                                    <Text style={styles.metaValue}>{thesis.author}</Text>
                                 </View>
-                                <TouchableOpacity
-                                    style={styles.viewBtn}
-                                    disabled={!thesis.isApproved}
-                                    onPress={() => navigation.navigate('ThesisDetail', { thesisId: thesis._id })}
-                                >
-                                    <Text style={[styles.viewBtnText, !thesis.isApproved && styles.viewBtnDisabled]}>
-                                        {thesis.isApproved ? 'View' : 'Pending'}
-                                    </Text>
-                                    <Ionicons name="arrow-forward" size={12} color={thesis.isApproved ? Colors.primary : Colors.textDim} />
-                                </TouchableOpacity>
+                                <View style={styles.metaCol}>
+                                    <Text style={styles.metaLabel}>YEAR</Text>
+                                    <Text style={styles.metaValue}>{thesis.year_range || 'N/A'}</Text>
+                                </View>
                             </View>
+
+                            {/* Approval Report Section */}
+                            <View style={styles.approvalSection}>
+                                <View style={styles.reportRow}>
+                                    <Text style={styles.reportLabel}>PROFESSOR</Text>
+                                    <Text style={styles.reportValue}>{thesis.professorId?.name || 'Unassigned'}</Text>
+                                </View>
+                                
+                                {thesis.isApproved && thesis.approvedBy && (
+                                    <View style={styles.reportRow}>
+                                        <Text style={[styles.reportLabel, { color: Colors.primary }]}>APPROVED BY</Text>
+                                        <View style={styles.reportValueRow}>
+                                            <Text style={[styles.reportValue, { fontWeight: '900' }]}>{thesis.approvedBy.name}</Text>
+                                            <Text style={styles.reportDate}>
+                                                {thesis.approvedAt ? new Date(thesis.approvedAt).toLocaleDateString() : ''}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Action Button */}
+                            <TouchableOpacity
+                                style={[styles.mainActionBtn, !thesis.isApproved && styles.mainActionBtnDisabled]}
+                                disabled={!thesis.isApproved}
+                                onPress={() => navigation.navigate('ThesisDetail', { thesisId: thesis._id })}
+                            >
+                                <Text style={[styles.mainActionBtnText, !thesis.isApproved && styles.mainActionBtnTextDisabled]}>
+                                    {thesis.isApproved ? 'VIEW RESEARCH' : 'UNDER REVIEW'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     ))
                 ) : (
@@ -171,24 +193,37 @@ const styles = StyleSheet.create({
             android: { elevation: 6 }
         }),
     },
-    cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    categoryPill: { backgroundColor: `${Colors.primary}15`, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: `${Colors.primary}30` },
-    categoryPillText: { fontSize: 9, fontWeight: '900', color: Colors.primary, letterSpacing: 1 },
-    statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
+    cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    statusPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1 },
     statusApproved: { backgroundColor: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)' },
     statusPending: { backgroundColor: 'rgba(251,191,36,0.1)', borderColor: 'rgba(251,191,36,0.3)' },
     statusPillText: { fontSize: 8, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
     statusApprovedText: { color: '#4ade80' },
     statusPendingText: { color: '#fbbf24' },
+    thesisTitle: { fontSize: 16, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', lineHeight: 22, marginBottom: 16 },
+    
+    metaRow: { flexDirection: 'row', gap: 24, marginBottom: 20 },
+    metaCol: { flex: 1 },
+    metaLabel: { fontSize: 8, fontWeight: '900', color: Colors.textSecondary, letterSpacing: 1.5, marginBottom: 4 },
+    metaValue: { fontSize: 11, fontWeight: 'bold', color: Colors.foreground },
 
-    thesisTitle: { fontSize: 15, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', lineHeight: 22, marginBottom: 6 },
-    thesisAuthor: { fontSize: 10, fontWeight: 'bold', color: Colors.textSecondary, letterSpacing: 1, marginBottom: 16 },
+    approvalSection: { paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.border, marginBottom: 20 },
+    reportRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    reportLabel: { fontSize: 8, fontWeight: '900', color: Colors.textDim, letterSpacing: 1 },
+    reportValue: { fontSize: 11, fontWeight: 'bold', color: Colors.textSecondary },
+    reportValueRow: { alignItems: 'flex-end' },
+    reportDate: { fontSize: 8, color: Colors.textDim, italic: true, marginTop: 2 },
 
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 16 },
-    docIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border },
-    viewBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    viewBtnText: { fontSize: 10, fontWeight: '900', color: Colors.primary, letterSpacing: 1, textTransform: 'uppercase' },
-    viewBtnDisabled: { color: Colors.textDim },
+    mainActionBtn: { backgroundColor: Colors.primary, paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
+    mainActionBtnDisabled: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: Colors.border },
+    mainActionBtnText: { fontSize: 10, fontWeight: '900', color: '#fff', letterSpacing: 2 },
+    mainActionBtnTextDisabled: { color: Colors.textDim },
+
+    courseText: { fontSize: 10, fontWeight: '900', color: Colors.primary, letterSpacing: 1 },
+    statusDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
+
+    // Removed old footer styles
+
 
     // Empty
     emptyCard: {

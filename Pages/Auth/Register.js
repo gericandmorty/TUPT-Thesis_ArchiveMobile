@@ -27,6 +27,7 @@ const RegisterScreen = () => {
     password: '',
     confirmPassword: '',
     isGraduate: false,
+    isProfessor: false,
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -106,7 +107,14 @@ const RegisterScreen = () => {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fullName, idNumber, birthdate, password, isGraduate: formData.isGraduate }),
+        body: JSON.stringify({
+          name: fullName,
+          idNumber,
+          birthdate,
+          password,
+          isGraduate: formData.isGraduate,
+          isProfessor: formData.isProfessor
+        }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -124,7 +132,7 @@ const RegisterScreen = () => {
   };
 
   const handleClear = () => {
-    setFormData({ fullName: '', idNumber: '', birthdate: '', password: '', confirmPassword: '', isGraduate: false });
+    setFormData({ fullName: '', idNumber: '', birthdate: '', password: '', confirmPassword: '', isGraduate: false, isProfessor: false });
   };
 
   return (
@@ -201,22 +209,49 @@ const RegisterScreen = () => {
               )}
             </View>
 
-            {/* Graduate Checkbox */}
-            <TouchableOpacity
-              style={styles.checkboxRow}
-              onPress={() => handleInputChange('isGraduate', !formData.isGraduate)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, formData.isGraduate && styles.checkboxChecked]}>
-                {formData.isGraduate && (
-                  <Ionicons name="checkmark" size={12} color={Colors.background} />
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.checkboxLabel}>I am a Graduate Student</Text>
-                <Text style={{ fontSize: 10, color: Colors.textDim }}>Optional • Advanced degree research</Text>
-              </View>
-            </TouchableOpacity>
+             <View style={styles.inputGroup}>
+               <Text style={styles.label}>ACCOUNT TYPE</Text>
+               <View style={styles.radioGroup}>
+                 {['Student', 'Graduate', 'Professor'].map((role) => (
+                   <TouchableOpacity
+                     key={role}
+                     style={[
+                       styles.radioOption,
+                       (role === 'Student' && !formData.isGraduate && !formData.isProfessor) ||
+                       (role === 'Graduate' && formData.isGraduate) ||
+                       (role === 'Professor' && formData.isProfessor)
+                         ? styles.radioOptionActive
+                         : null
+                     ]}
+                     onPress={() => {
+                        if (role === 'Student') setFormData(prev => ({ ...prev, isGraduate: false, isProfessor: false }));
+                        else if (role === 'Graduate') setFormData(prev => ({ ...prev, isGraduate: true, isProfessor: false }));
+                        else if (role === 'Professor') setFormData(prev => ({ ...prev, isGraduate: false, isProfessor: true }));
+                     }}
+                     activeOpacity={0.7}
+                   >
+                     <View style={[
+                       styles.radioCircle,
+                       ((role === 'Student' && !formData.isGraduate && !formData.isProfessor) ||
+                       (role === 'Graduate' && formData.isGraduate) ||
+                       (role === 'Professor' && formData.isProfessor)) && styles.radioCircleChecked
+                     ]}>
+                       {((role === 'Student' && !formData.isGraduate && !formData.isProfessor) ||
+                       (role === 'Graduate' && formData.isGraduate) ||
+                       (role === 'Professor' && formData.isProfessor)) && (
+                         <View style={styles.radioInnerCircle} />
+                       )}
+                     </View>
+                     <Text style={[
+                        styles.radioLabel,
+                        ((role === 'Student' && !formData.isGraduate && !formData.isProfessor) ||
+                        (role === 'Graduate' && formData.isGraduate) ||
+                        (role === 'Professor' && formData.isProfessor)) && styles.radioLabelActive
+                     ]}>{role}</Text>
+                   </TouchableOpacity>
+                 ))}
+               </View>
+             </View>
 
             {/* Password */}
             <View style={styles.inputGroup}>
@@ -472,6 +507,53 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 13,
     fontWeight: '900',
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  radioOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  radioOptionActive: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(45, 212, 191, 0.05)',
+  },
+  radioCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioCircleChecked: {
+    borderColor: Colors.primary,
+  },
+  radioInnerCircle: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primary,
+  },
+  radioLabel: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  radioLabelActive: {
+    color: Colors.foreground,
   },
 });
 

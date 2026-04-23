@@ -38,6 +38,8 @@ const SubmitThesis = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showCoursePicker, setShowCoursePicker] = useState(false);
+    const [showProfessorPicker, setShowProfessorPicker] = useState(false);
+    const [professors, setProfessors] = useState([]);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -45,7 +47,27 @@ const SubmitThesis = () => {
         author: '',
         year_range: '',
         course: '',
+        professorId: '',
     });
+
+    React.useEffect(() => {
+        fetchProfessors();
+    }, []);
+
+    const fetchProfessors = async () => {
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const res = await fetch(`${API_BASE_URL}/user/professors`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (data.success) {
+                setProfessors(data.data);
+            }
+        } catch (err) {
+            console.error('Error fetching professors:', err);
+        }
+    };
 
     const updateField = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -104,7 +126,7 @@ const SubmitThesis = () => {
             <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Back Button */}
                 <TouchableOpacity style={styles.backRow} onPress={() => navigation.navigate('DocumentsHub')}>
-                    <Ionicons name="arrow-back" size={16} color="#fca5a5" />
+                    <Ionicons name="arrow-back" size={16} color={Colors.primary} />
                     <Text style={styles.backText}>Back to Documents</Text>
                 </TouchableOpacity>
 
@@ -164,6 +186,21 @@ const SubmitThesis = () => {
                                 <Ionicons name="chevron-down" size={16} color="#6b7280" />
                             </TouchableOpacity>
                         </View>
+                    </View>
+
+                    {/* Professor Picker */}
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.fieldLabel}>ASSIGN PROFESSOR FOR APPROVAL</Text>
+                        <TouchableOpacity
+                            style={styles.dropdownBtn}
+                            onPress={() => setShowProfessorPicker(true)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.dropdownBtnText, !formData.professorId && { color: '#9ca3af' }]}>
+                                {formData.professorId ? professors.find(p => p._id === formData.professorId)?.name : 'Select Professor'}
+                            </Text>
+                            <Ionicons name="person" size={16} color={Colors.primary} />
+                        </TouchableOpacity>
                     </View>
 
                     {/* Abstract */}
@@ -226,6 +263,39 @@ const SubmitThesis = () => {
                     </View>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Professor Picker Modal */}
+            <Modal visible={showProfessorPicker} transparent animationType="slide">
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowProfessorPicker(false)}
+                >
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Choose Professor</Text>
+                        <FlatList
+                            data={professors}
+                            keyExtractor={(item) => item._id}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={[styles.modalItem, formData.professorId === item._id && styles.modalItemActive]}
+                                    onPress={() => { updateField('professorId', item._id); setShowProfessorPicker(false); }}
+                                >
+                                    <View>
+                                        <Text style={[styles.modalItemText, formData.professorId === item._id && styles.modalItemTextActive]}>{item.name}</Text>
+                                        <Text style={{ fontSize: 10, color: '#6b7280' }}>ID: {item.idNumber}</Text>
+                                    </View>
+                                    {formData.professorId === item._id && <Ionicons name="checkmark" size={18} color={Colors.primary} />}
+                                </TouchableOpacity>
+                            )}
+                            ListEmptyComponent={() => (
+                                <Text style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>No professors available</Text>
+                            )}
+                            style={{ maxHeight: 400 }}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </LinearGradient>
     );
 };
@@ -235,52 +305,53 @@ const styles = StyleSheet.create({
     scroll: { flex: 1 },
     scrollContent: { paddingTop: 20, paddingBottom: 60, paddingHorizontal: 20 },
     backRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 20 },
-    backText: { color: '#fca5a5', fontSize: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
+    backText: { color: Colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
 
     formCard: {
-        backgroundColor: '#fff', borderRadius: 28, padding: 24, overflow: 'hidden',
+        backgroundColor: Colors.card, borderRadius: 28, padding: 24, overflow: 'hidden',
+        borderWidth: 1, borderColor: Colors.border,
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16 },
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.4, shadowRadius: 24 },
             android: { elevation: 8 }
         }),
     },
-    formHeader: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingBottom: 16, marginBottom: 24 },
-    formTitle: { fontSize: 22, fontWeight: '900', color: '#111827', textTransform: 'uppercase', marginBottom: 4 },
-    formSubtitle: { fontSize: 10, fontWeight: '900', color: '#dc2626', letterSpacing: 2 },
+    formHeader: { borderBottomWidth: 1, borderBottomColor: Colors.border, paddingBottom: 16, marginBottom: 24 },
+    formTitle: { fontSize: 20, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', marginBottom: 4 },
+    formSubtitle: { fontSize: 9, fontWeight: '900', color: Colors.primary, letterSpacing: 2 },
 
     fieldGroup: { marginBottom: 20 },
-    fieldLabel: { fontSize: 9, fontWeight: '900', color: '#6b7280', letterSpacing: 2, marginBottom: 8 },
+    fieldLabel: { fontSize: 8, fontWeight: '900', color: Colors.textDim, letterSpacing: 1.5, marginBottom: 8 },
     input: {
-        backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16,
-        fontSize: 14, color: '#111827', fontWeight: '500',
+        backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: Colors.border, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16,
+        fontSize: 14, color: Colors.foreground, fontWeight: '500',
     },
-    inputMultiline: { minHeight: 140, textAlignVertical: 'top' },
+    inputMultiline: { minHeight: 120, textAlignVertical: 'top' },
 
     rowGroup: { flexDirection: 'row', gap: 12, marginBottom: 20 },
     dropdownBtn: {
-        backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.03)', borderWidth: 1, borderColor: Colors.border, borderRadius: 16,
         paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     },
-    dropdownBtnText: { fontSize: 14, color: '#111827', fontWeight: '500', flex: 1 },
+    dropdownBtnText: { fontSize: 13, color: Colors.foreground, fontWeight: '500', flex: 1 },
 
-    formActions: { flexDirection: 'row', gap: 12, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#f3f4f6', marginTop: 12 },
+    formActions: { flexDirection: 'row', gap: 12, paddingTop: 24, borderTopWidth: 1, borderTopColor: Colors.border, marginTop: 12 },
     cancelBtn: { flex: 1, padding: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    cancelBtnText: { color: '#6b7280', fontWeight: '900', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
+    cancelBtnText: { color: Colors.textSecondary, fontWeight: '900', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
     submitBtn: {
         flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-        backgroundColor: '#7f0000', borderRadius: 16, padding: 18,
+        backgroundColor: Colors.primary, borderRadius: 16, padding: 18,
     },
-    submitBtnText: { color: '#fff', fontWeight: '900', fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
+    submitBtnText: { color: '#fff', fontWeight: '900', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
     btnDisabled: { opacity: 0.6 },
 
     // Modal
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 30 },
-    modalContent: { backgroundColor: '#fff', borderRadius: 24, padding: 20, width: '100%', maxWidth: 340 },
-    modalTitle: { fontSize: 14, fontWeight: '900', color: '#111827', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16, textAlign: 'center' },
-    modalItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 4 },
-    modalItemActive: { backgroundColor: '#fef2f2' },
-    modalItemText: { fontSize: 14, color: '#374151', fontWeight: '500' },
-    modalItemTextActive: { color: '#7f0000', fontWeight: '900' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+    modalContent: { backgroundColor: Colors.card, borderRadius: 32, padding: 24, width: '100%', maxWidth: 360, borderWidth: 1, borderColor: Colors.border },
+    modalTitle: { fontSize: 12, fontWeight: '900', color: Colors.foreground, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 20, textAlign: 'center' },
+    modalItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 14, marginBottom: 6 },
+    modalItemActive: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: Colors.primary },
+    modalItemText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '500' },
+    modalItemTextActive: { color: Colors.primary, fontWeight: '900' },
 });
 
 export default SubmitThesis;
